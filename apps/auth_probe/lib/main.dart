@@ -135,6 +135,23 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
         codec: const TcpFrameCodec(
           payloadCodec: MessagePackPayloadCodec(),
         ),
+        onFrame: (frame) {
+          final payload = frame.payload;
+          final payloadDescription = switch (payload) {
+            null => 'null',
+            int value => 'int($value)',
+            bool value => 'bool($value)',
+            String value => 'string(length=${value.length})',
+            Map value => 'map(keys=${value.keys.take(20).join(",")})',
+            List value => 'list(length=${value.length})',
+            _ => payload.runtimeType.toString(),
+          };
+          _log(
+            'Входящий frame: command=${frame.command}, '
+            'sequence=${frame.sequence}, opcode=${frame.opcode}, '
+            'flags=${frame.flags}, payload=$payloadDescription.',
+          );
+        },
       );
       _connection = connection;
 
