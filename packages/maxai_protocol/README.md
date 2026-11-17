@@ -13,6 +13,7 @@
 - `ProtocolConnection`: отправка REQUEST, сопоставление RESPONSE/ERROR по sequence, обработка EVENT, закрытие и обработка потери соединения.
 - `SessionManager`: mobile/web payload для `SESSION_INIT` (opcode 6), проверка ответа handshake и состояния MAX-сессии.
 - Модели `MaxUserAgent`, `HandshakeResponse`, `DeviceType` и `SessionState`.
+- `HeartbeatManager`: периодический PING (opcode 1), первый запрос сразу после запуска, без параллельных ping.
 - Автоматический пропуск занятых sequence ID при выдаче нового запроса.
 
 ## SESSION_INIT
@@ -24,7 +25,7 @@
 - Opcode: `6`.
 - Ответ разбирает `callsSeed` и `app-update-type`; остальные поля сохраняются в `raw`.
 
-`SessionManager` не выполняет SMS/QR авторизацию, не отправляет LOGIN и не запускает ping. Эти обязанности остаются отдельными слоями.
+`SessionManager` не выполняет SMS/QR авторизацию и не отправляет LOGIN. `HeartbeatManager` реализует отдельный PING-цикл, который можно запускать после успешного handshake.
 
 ## Значения command
 
@@ -55,7 +56,7 @@ GitHub Actions запускает эти проверки при изменен�
 
 - Совместимость с актуальным сервером MAX не подтверждена.
 - Формат и значения command сверены с исходниками PyMax, но сами исходники PyMax не являются официальной спецификацией MAX.
-- Транспорт пока не содержит reconnect, heartbeat/ping manager и авторизацию.
+- Транспорт пока не содержит reconnect и авторизацию. Heartbeat реализован отдельным менеджером, но его поведение с актуальным сервером MAX не проверено.
 - Предположение о соответствии одного WebSocket message одному бинарному frame требует проверки на реальном сервере. Stream decoder при этом умеет собирать frame из нескольких chunks и разбирать несколько frame подряд.
 - Compression flags передаются в frame, но декомпрессия payload пока не реализована.
 - Ошибки ERROR не преобразуются в специализированные исключения.
