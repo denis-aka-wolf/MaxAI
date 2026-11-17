@@ -13,12 +13,24 @@
 
 ## Проверка протокольного пакета
 
+Локальная проверка выполняется командами:
+
 ```bash
 cd packages/maxai_protocol
 dart pub get
 dart analyze
 dart test
 ```
+
+## Непрерывная интеграция (CI)
+
+[Dart Protocol CI](https://github.com/denis-aka-wolf/MaxAI/blob/main/.github/workflows/dart_protocol.yml)
+
+При изменении файлов пакета `packages/maxai_protocol/` GitHub Actions автоматически запускает:
+
+1. `dart pub get` — получение зависимостей.
+2. `dart analyze` — статический анализ кода.
+3. `dart test` — запуск тестов.
 
 ## Принципы
 
