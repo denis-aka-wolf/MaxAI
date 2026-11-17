@@ -6,7 +6,8 @@ import 'tcp_frame_codec.dart';
 /// Собирает полные frame из произвольно фрагментированного TCP byte stream.
 ///
 /// Поддерживает несколько frame в одном chunk и один frame, пришедший
-/// несколькими chunk. Буфер ограничен максимально допустимым frame size.
+/// несколькими chunk. После обработки входного chunk в буфере остаётся только
+/// неполный frame; его размер ограничен 10-байтовым header и uint24 payload.
 final class TcpFrameStreamDecoder {
   TcpFrameStreamDecoder(this.codec);
 
