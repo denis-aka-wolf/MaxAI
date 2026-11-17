@@ -82,7 +82,7 @@ void main() {
     expect(frame.command, ProtocolCommand.request.value);
     expect(frame.opcode, SessionManager.sessionInitOpcode);
     final decoded = codec.decodePayload(frame);
-    return (decoded as Map).cast<String, Object?>();
+    return (decoded as Map<Object?, Object?>).cast<String, Object?>();
   }
 
   void replyWithHandshake({
@@ -159,7 +159,7 @@ void main() {
     final payload = await sentPayload();
     expect(payload.keys.toSet(), <String>{'userAgent', 'deviceId'});
     expect(payload['deviceId'], 'web-device');
-    final userAgent = (payload['userAgent'] as Map).cast<String, Object?>();
+    final userAgent = (payload['userAgent'] as Map<Object?, Object?>).cast<String, Object?>();
     expect(userAgent.keys.toSet(), <String>{
       'deviceType',
       'locale',
@@ -230,6 +230,7 @@ void main() {
     await expectLater(future, throwsFormatException);
     expect(manager.state, SessionState.failed);
   });
+
   test('concurrent start calls share the in-flight handshake', () async {
     await connection.connect();
     final manager = SessionManager(connection: connection);
@@ -287,5 +288,4 @@ void main() {
     manager.reset();
     expect(manager.state, SessionState.idle);
   });
-
 }
