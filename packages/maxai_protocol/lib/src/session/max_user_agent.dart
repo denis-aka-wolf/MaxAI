@@ -68,7 +68,7 @@ final class MaxUserAgent {
       'timezone',
     };
     final payload = toPayload()
-      ..removeWhere((key, value) => !webFields.contains(key));
+      ..removeWhere((key, _) => !webFields.contains(key));
     return payload;
   }
 
