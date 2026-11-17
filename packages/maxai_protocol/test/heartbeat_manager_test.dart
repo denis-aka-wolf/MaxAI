@@ -152,7 +152,10 @@ void main() {
       payload: <String, Object?>{},
     ));
 
-    await Future<void>.delayed(const Duration(milliseconds: 25));
+    final deadline = DateTime.now().add(const Duration(seconds: 1));
+    while (transport.sent.length < 2 && DateTime.now().isBefore(deadline)) {
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+    }
     expect(transport.sent, hasLength(2));
     final second = codec.decode(transport.sent[1])!;
     expect(second.sequence, isNot(first.sequence));
