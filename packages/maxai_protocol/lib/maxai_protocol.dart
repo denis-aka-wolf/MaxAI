@@ -13,3 +13,10 @@ export 'src/requests/pending_requests.dart';
 export 'src/sequence/sequence_manager.dart';
 export 'src/transport/protocol_transport.dart';
 export 'src/transport/web_socket_transport.dart';
+
+export 'src/session/device_type.dart';
+export 'src/session/handshake_response.dart';
+export 'src/session/max_user_agent.dart';
+export 'src/session/session_init_payload.dart';
+export 'src/session/session_manager.dart';
+export 'src/session/session_state.dart';
