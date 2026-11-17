@@ -11,7 +11,7 @@
 - `docs/MAX_Protocol_Specification.md` — исследование протокола.
 - `packages/maxai_protocol/` — самостоятельный Dart-пакет frame, MessagePack, транспортного соединения и начального MAX handshake (`SESSION_INIT`).
 
-На текущем этапе реализованы протокольное соединение, `SessionManager` для mobile/web `SESSION_INIT` и отдельный `HeartbeatManager` для PING (opcode 1). SMS/QR авторизация, LOGIN и проверка совместимости с действующим сервером MAX ещё не реализованы.
+На текущем этапе реализованы протокольное соединение, `SessionManager` для mobile/web `SESSION_INIT`, `HeartbeatManager` для PING (opcode 1) и базовый `AuthManager`: SMS, 2FA, QR и подтверждение регистрации. Реализован алгоритм fingerprint PyMax с конфигурацией хешей APK. Следующий этап: LOGIN и синхронизация данных аккаунта. Совместимость с действующим сервером MAX пока не подтверждена.
 
 ## Проверка протокольного пакета
 
