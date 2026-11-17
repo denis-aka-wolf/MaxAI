@@ -35,6 +35,24 @@ final class SyncState {
       );
 
   @override
+  bool operator ==(Object other) =>
+      other is SyncState &&
+      other.chatsSync == chatsSync &&
+      other.contactsSync == contactsSync &&
+      other.draftsSync == draftsSync &&
+      other.presenceSync == presenceSync &&
+      other.configHash == configHash;
+
+  @override
+  int get hashCode => Object.hash(
+        chatsSync,
+        contactsSync,
+        draftsSync,
+        presenceSync,
+        configHash,
+      );
+
+  @override
   String toString() => 'SyncState(chatsSync: $chatsSync, contactsSync: $contactsSync, '
       'draftsSync: $draftsSync, presenceSync: $presenceSync, configHashSet: true)';
 }
