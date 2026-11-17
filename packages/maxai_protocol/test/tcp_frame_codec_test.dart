@@ -36,34 +36,46 @@ void main() {
     expect(frame.payload, <int>[1, 2]);
   });
 
-  test('skips MAX leading integers before decoding response payload', () {
+  test('decompresses MAX LZ4 payload with literal sequence', () {
     final bytes = codec.encode(
       command: 1,
       sequence: 0,
       opcode: 6,
-      payload: <int>[0xF0, 0x4B, 0x81, 0xA1, 0x61, 0x01],
+      payload: <int>[0x50, 0x68, 0x65, 0x6C, 0x6C, 0x6F],
       flags: 1,
     );
 
     final frame = codec.decode(bytes)!;
-    expect(frame.flags, 1);
-    expect(codec.decodePayload(frame), <int>[0x81, 0xA1, 0x61, 0x01]);
+    expect(codec.decodePayload(frame), <int>[0x68, 0x65, 0x6C, 0x6C, 0x6F]);
   });
 
-  test('rejects a truncated MAX leading integer prefix', () {
+  test('decompresses MAX LZ4 match sequence', () {
     final bytes = codec.encode(
       command: 1,
       sequence: 0,
       opcode: 6,
-      payload: <int>[0xF0],
+      payload: <int>[0x40, 0x61, 0x62, 0x63, 0x64, 0x04, 0x00],
       flags: 1,
     );
 
     final frame = codec.decode(bytes)!;
     expect(
-      () => codec.decodePayload(frame),
-      throwsFormatException,
+      codec.decodePayload(frame),
+      <int>[0x61, 0x62, 0x63, 0x64, 0x61, 0x62, 0x63, 0x64],
     );
+  });
+
+  test('rejects malformed MAX LZ4 payload', () {
+    final bytes = codec.encode(
+      command: 1,
+      sequence: 0,
+      opcode: 6,
+      payload: <int>[0x50, 0x61],
+      flags: 1,
+    );
+
+    final frame = codec.decode(bytes)!;
+    expect(() => codec.decodePayload(frame), throwsFormatException);
   });
 
   test('returns null for incomplete header or payload', () {
