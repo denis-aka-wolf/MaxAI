@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 
 // Flutter SDK marks the Material library deprecated in newer prerelease builds.
@@ -75,6 +76,18 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     });
   }
 
+  String _formatHex(List<int> bytes) {
+    const maxBytes = 16384;
+    final visible = bytes.take(maxBytes);
+    final hex = visible
+        .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
+        .join(' ');
+    if (bytes.length > maxBytes) {
+      return '$hex ... <truncated: total ${bytes.length} bytes>';
+    }
+    return hex;
+  }
+
   String _newDeviceId() {
     final random = Random.secure();
     return List<String>.generate(
@@ -123,6 +136,9 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
 
       final deviceId = _newDeviceId();
       final userAgent = _createWebUserAgent();
+      final frameCodec = const TcpFrameCodec(
+        payloadCodec: MessagePackPayloadCodec(),
+      );
       final connection = ProtocolConnection(
         transport: WebSocketTransport(
           uri: uri,
@@ -132,10 +148,31 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
               'User-Agent': userAgent.headerUserAgent!,
           },
         ),
-        codec: const TcpFrameCodec(
-          payloadCodec: MessagePackPayloadCodec(),
-        ),
+        codec: frameCodec,
         onFrame: (frame) {
+          if (frame.opcode == AuthManager.getQrOpcode) {
+            final rawBytes = frame.frame.payload;
+            final decodedBytes = frameCodec.decodePayloadBytes(frame.frame);
+            _log(
+              'GET_QR FRAME HEADER: version=${frame.version}, '
+              'command=${frame.command}, sequence=${frame.sequence}, '
+              'opcode=${frame.opcode}, flags=${frame.flags}, '
+              'compressedPayloadLength=${rawBytes.length}, '
+              'decompressedPayloadLength=${decodedBytes.length}.',
+            );
+            _log(
+              'GET_QR RAW FRAME PAYLOAD HEX: '
+              '${_formatHex(rawBytes)}',
+            );
+            _log(
+              'GET_QR DECOMPRESSED MESSAGEPACK HEX: '
+              '${_formatHex(decodedBytes)}',
+            );
+            _log(
+              'GET_QR DECOMPRESSED UTF8 PREVIEW: '
+              '${utf8.decode(decodedBytes, allowMalformed: true)}',
+            );
+          }
           final payload = frame.payload;
           final payloadDescription = switch (payload) {
             null => 'null',
