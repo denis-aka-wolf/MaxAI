@@ -187,7 +187,16 @@ int _requiredInt(Map<String, Object?> map, String key) {
   if (value is num && value.isFinite && value == value.roundToDouble()) {
     return value.toInt();
   }
-  throw FormatException('Missing or invalid "$key" in auth response.');
+  final safeValue = switch (value) {
+    null => 'null',
+    num() || bool() => value.toString(),
+    String() => value.length <= 80 ? '"$value"' : '<string length=${value.length}>',
+    _ => '<${value.runtimeType}>',
+  };
+  throw FormatException(
+    'Missing or invalid "$key" in auth response '
+    '(type: ${value.runtimeType}, value: $safeValue).',
+  );
 }
 
 /// Извлекает LOGIN / REGISTER токены из tokenAttrs, не выводя их в логи.
