@@ -282,10 +282,13 @@ final class AuthManager {
     Object? value, {
     String key = '',
     int depth = 0,
+    bool redactStringValues = false,
   }) {
     final normalizedKey = key.toLowerCase();
+    final redactNestedStrings =
+        redactStringValues || normalizedKey == 'tokenattrs';
     final isContainer = value is Map || value is List;
-    final isSensitiveField = normalizedizedSensitiveKey(normalizedKey);
+    final isSensitiveField = isSensitiveDiagnosticKey(normalizedKey);
     if (isSensitiveField && !isContainer) {
       final details = switch (value) {
         null => 'null',
@@ -300,6 +303,9 @@ final class AuthManager {
 
     if (value == null) return 'null (Null)';
     if (value is String) {
+      if (redactNestedStrings) {
+        return '<REDACTED String(length=${value.length})>';
+      }
       final visible = value.length <= 200
           ? value
           : '${value.substring(0, 200)}… (length=${value.length})';
@@ -330,6 +336,7 @@ final class AuthManager {
             entry.value,
             key: entryKey is String ? entryKey : '',
             depth: depth + 1,
+            redactStringValues: redactNestedStrings,
           )}',
         );
       }
@@ -339,7 +346,7 @@ final class AuthManager {
     return '<${value.runtimeType}>';
   }
 
-  bool normalizedizedSensitiveKey(String key) {
+  bool isSensitiveDiagnosticKey(String key) {
     return key.contains('token') ||
         key.contains('secret') ||
         key.contains('password') ||
