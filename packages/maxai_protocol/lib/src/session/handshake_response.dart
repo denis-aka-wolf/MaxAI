@@ -11,7 +11,7 @@ final class HandshakeResponse {
   final Map<String, Object?> raw;
 
   factory HandshakeResponse.fromPayload(Object? payload) {
-    if (payload is! Map) {
+    if (payload is! Map<Object?, Object?>) {
       throw FormatException(
         'SESSION_INIT response payload must be a map, got ${payload.runtimeType}.',
       );
