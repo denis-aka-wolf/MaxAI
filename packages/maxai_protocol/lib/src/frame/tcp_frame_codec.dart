@@ -76,7 +76,7 @@ final class TcpFrameCodec {
   Object? decodePayload(ProtocolFrame frame) {
     final payloadBytes = switch (frame.flags) {
       0 => frame.payload,
-      _ when frame.flags == _zstdFlag => throw const UnsupportedError(
+      _ when frame.flags == _zstdFlag => throw UnsupportedError(
           'Zstandard-compressed MAX payload is not supported yet.',
         ),
       _ => _decompressLz4Block(frame.payload),
