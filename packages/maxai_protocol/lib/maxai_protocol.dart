@@ -16,6 +16,8 @@ export 'src/transport/web_socket_transport.dart';
 
 export 'src/session/device_type.dart';
 export 'src/session/handshake_response.dart';
+export 'src/session/heartbeat_manager.dart';
+export 'src/session/heartbeat_state.dart';
 export 'src/session/max_user_agent.dart';
 export 'src/session/session_init_payload.dart';
 export 'src/session/session_manager.dart';
