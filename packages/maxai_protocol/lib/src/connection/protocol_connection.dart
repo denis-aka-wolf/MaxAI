@@ -120,14 +120,20 @@ final class ProtocolConnection {
     );
     final responseFuture = _pending.register(sequence, timeout: timeout);
 
+    // Подписываемся на ошибку сразу: timeout/close может наступить,
+    // пока transport.send ещё ожидает завершения.
+    unawaited(
+      responseFuture.then<void>(
+        (_) {},
+        onError: (Object _, StackTrace __) {},
+      ),
+    );
+
     try {
-      await Future.wait<void>([
-        transport.send(bytes),
-        responseFuture.then<void>((_) {}),
-      ]);
+      await transport.send(bytes);
     } catch (error, stackTrace) {
       _pending.fail(sequence, error, stackTrace);
-      return responseFuture;
+      Error.throwWithStackTrace(error, stackTrace);
     }
 
     return responseFuture;
