@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 /// Возможные результаты промежуточного этапа авторизации.
 enum AuthStage {
   smsCodeRequested,
@@ -231,6 +229,3 @@ AuthResult authResultFromPayload(Object? value) {
     'Auth response contains no login token, password challenge or registration token.',
   );
 }
-
-/// Небольшой type guard для бинарного fingerprint в тестах и API.
-bool isFingerprintBytes(Object? value) => value is Uint8List;
