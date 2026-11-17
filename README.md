@@ -9,7 +9,9 @@
 ## Структура
 
 - `docs/MAX_Protocol_Specification.md` — исследование протокола.
-- `packages/maxai_protocol/` — самостоятельный Dart-пакет frame, MessagePack и инфраструктуры запросов.
+- `packages/maxai_protocol/` — самостоятельный Dart-пакет frame, MessagePack, транспортного соединения и начального MAX handshake (`SESSION_INIT`).
+
+На текущем этапе реализованы протокольное соединение и `SessionManager` для mobile/web `SESSION_INIT`. SMS/QR авторизация, LOGIN, heartbeat и проверка совместимости с действующим сервером MAX ещё не реализованы.
 
 ## Проверка протокольного пакета
 
