@@ -1,10 +1,12 @@
 import 'dart:typed_data';
+
 import '../codec/payload_codec.dart';
 import 'protocol_frame.dart';
 
 /// Кодек header из PyMax TcpPacketFramer: struct >BBHHI.
 final class TcpFrameCodec {
   const TcpFrameCodec({required this.payloadCodec, this.version = 10});
+
   static const int headerLength = 10;
   final PayloadCodec payloadCodec;
   final int version;
@@ -17,19 +19,33 @@ final class TcpFrameCodec {
     int flags = 0,
   }) {
     final payloadBytes = payloadCodec.encode(payload);
-    final frame = ProtocolFrame(
-      version: version, command: command, sequence: sequence,
-      opcode: opcode, flags: flags, payload: payloadBytes,
-    )..validate();
+    return encodeFrame(
+      ProtocolFrame(
+        version: version,
+        command: command,
+        sequence: sequence,
+        opcode: opcode,
+        flags: flags,
+        payload: payloadBytes,
+      ),
+    );
+  }
 
-    final result = Uint8List(headerLength + payloadBytes.length);
+  /// Кодирует frame, payload которого уже представлен сериализованными байтами.
+  Uint8List encodeFrame(ProtocolFrame frame) {
+    frame.validate();
+    final result = Uint8List(headerLength + frame.payload.length);
     final data = ByteData.sublistView(result);
     data.setUint8(0, frame.version);
     data.setUint8(1, frame.command);
     data.setUint16(2, frame.sequence, Endian.big);
     data.setUint16(4, frame.opcode, Endian.big);
-    data.setUint32(6, (frame.flags << 24) | frame.payload.length, Endian.big);
-    result.setRange(headerLength, result.length, payloadBytes);
+    data.setUint32(
+      6,
+      (frame.flags << 24) | frame.payload.length,
+      Endian.big,
+    );
+    result.setRange(headerLength, result.length, frame.payload);
     return result;
   }
 
@@ -55,5 +71,6 @@ final class TcpFrameCodec {
     );
   }
 
-  Object? decodePayload(ProtocolFrame frame) => payloadCodec.decode(frame.payload);
+  Object? decodePayload(ProtocolFrame frame) =>
+      payloadCodec.decode(frame.payload);
 }
