@@ -20,6 +20,7 @@ final class _FakeTransport implements ProtocolTransport {
       StreamController<dynamic>();
   final List<Uint8List> sent = <Uint8List>[];
   bool connected = false;
+  bool failSend = false;
 
   @override
   bool get isConnected => connected;
@@ -35,6 +36,7 @@ final class _FakeTransport implements ProtocolTransport {
   @override
   Future<void> send(Uint8List bytes) async {
     if (!connected) throw StateError('not connected');
+    if (failSend) throw StateError('simulated send failure');
     sent.add(Uint8List.fromList(bytes));
   }
 
@@ -188,4 +190,19 @@ void main() {
     await Future.wait([firstFuture, secondFuture]);
     expect(connection.pendingRequestCount, 0);
   });
+  test('send failure completes request with error and clears pending entry', () async {
+    await connection.connect();
+    transport.failSend = true;
+
+    await expectLater(
+      connection.request(
+        opcode: 49,
+        payload: <int>[],
+      ),
+      throwsStateError,
+    );
+
+    expect(connection.pendingRequestCount, 0);
+  });
+
 }
