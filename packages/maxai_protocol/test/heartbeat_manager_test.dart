@@ -134,4 +134,37 @@ void main() {
     await expectLater(manager.start(), throwsStateError);
     expect(transport.sent, isEmpty);
   });
+  test('sends the next PING only after interval and prior response', () async {
+    await connection.connect();
+    final manager = HeartbeatManager(
+      connection: connection,
+      interval: const Duration(milliseconds: 10),
+      requestTimeout: const Duration(seconds: 1),
+    );
+
+    await manager.start();
+    await Future<void>.delayed(Duration.zero);
+    final first = codec.decode(transport.sent.first)!;
+    transport.controller.add(codec.encode(
+      command: ProtocolCommand.response.value,
+      sequence: first.sequence,
+      opcode: HeartbeatManager.pingOpcode,
+      payload: <String, Object?>{},
+    ));
+
+    await Future<void>.delayed(const Duration(milliseconds: 25));
+    expect(transport.sent, hasLength(2));
+    final second = codec.decode(transport.sent[1])!;
+    expect(second.sequence, isNot(first.sequence));
+
+    transport.controller.add(codec.encode(
+      command: ProtocolCommand.response.value,
+      sequence: second.sequence,
+      opcode: HeartbeatManager.pingOpcode,
+      payload: <String, Object?>{},
+    ));
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+    await manager.stop();
+  });
+
 }
