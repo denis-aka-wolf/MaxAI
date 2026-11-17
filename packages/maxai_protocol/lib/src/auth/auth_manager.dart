@@ -182,6 +182,7 @@ final class AuthManager {
         loginByQrOpcode,
         AuthPayloads.confirmQr(trackId: trackId),
       );
+      _logAuthPayload('LOGIN_BY_QR', payload);
       return authResultFromPayload(payload);
     });
   }
@@ -243,6 +244,16 @@ final class AuthManager {
     return response.payload;
   }
 
+  /// Печатает структуру ответа авторизации до разбора моделью.
+  ///
+  /// Контейнеры tokenAttrs/passwordChallenge раскрываются рекурсивно,
+  /// но сами секретные значения (токены, пароли, коды и идентификаторы
+  /// QR-сессии) маскируются.
+  void _logAuthPayload(String operation, Object? payload) {
+    onLog?.call('$operation response payload: '
+        '${_formatDiagnosticValue(payload)}');
+  }
+
   /// Печатает структуру ответа GET_QR до разбора моделью.
   ///
   /// Значения, которые позволяют воспользоваться чужой QR-сессией, не
@@ -273,14 +284,18 @@ final class AuthManager {
     int depth = 0,
   }) {
     final normalizedKey = key.toLowerCase();
-    if (normalizedKey.contains('token') ||
-        normalizedKey.contains('secret') ||
-        normalizedKey.contains('password') ||
-        normalizedKey.contains('qr') ||
-        normalizedKey.contains('trackid') ||
-        normalizedKey.contains('phone') ||
-        normalizedKey.contains('code')) {
-      return '<REDACTED>';
+    final isContainer = value is Map || value is List;
+    final isSensitiveField = normalizedizedSensitiveKey(normalizedKey);
+    if (isSensitiveField && !isContainer) {
+      final details = switch (value) {
+        null => 'null',
+        String text => 'String(length=${text.length})',
+        Uint8List bytes => 'Uint8List(length=${bytes.length})',
+        List list => 'List(length=${list.length})',
+        Map map => 'Map(length=${map.length})',
+        _ => value.runtimeType.toString(),
+      };
+      return '<REDACTED $details>';
     }
 
     if (value == null) return 'null (Null)';
@@ -322,6 +337,18 @@ final class AuthManager {
       return '{${entries.join(', ')}} (Map length=${value.length})';
     }
     return '<${value.runtimeType}>';
+  }
+
+  bool normalizedizedSensitiveKey(String key) {
+    return key.contains('token') ||
+        key.contains('secret') ||
+        key.contains('password') ||
+        key.contains('qr') ||
+        key.contains('trackid') ||
+        key.contains('phone') ||
+        key.contains('code') ||
+        key.contains('authorization') ||
+        key.contains('cookie');
   }
 
   String _quoteDiagnosticString(String value) {
