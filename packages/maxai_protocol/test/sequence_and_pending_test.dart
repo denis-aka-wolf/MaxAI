@@ -17,11 +17,12 @@ void main() {
     expect(pending.length, 0);
   });
 
-  test('duplicate pending sequence is rejected', () {
+  test('duplicate pending sequence is rejected', () async {
     final pending = PendingRequests<String>();
-    pending.register(5);
+    final first = pending.register(5);
     expect(() => pending.register(5), throwsStateError);
     pending.cancelAll();
+    await expectLater(first, throwsStateError);
   });
 
   test('connection close fails all pending requests', () async {
