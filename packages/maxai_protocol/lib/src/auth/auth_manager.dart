@@ -288,7 +288,7 @@ final class AuthManager {
     final redactNestedStrings =
         redactStringValues || normalizedKey == 'tokenattrs';
     final isContainer = value is Map || value is List;
-    final isSensitiveField = isSensitiveDiagnosticKey(normalizedKey);
+    final isSensitiveField = _isSensitiveDiagnosticKey(normalizedKey);
     if (isSensitiveField && !isContainer) {
       final details = switch (value) {
         null => 'null',
@@ -318,15 +318,19 @@ final class AuthManager {
       return 'Uint8List(length=${value.length})';
     }
     if (value is List) {
-      if (depth >= 3) return 'List(length=${value.length})';
+      if (depth >= 8) return 'List(length=${value.length})';
       final items = value.take(30).map(
-        (item) => _formatDiagnosticValue(item, depth: depth + 1),
+        (item) => _formatDiagnosticValue(
+          item,
+          depth: depth + 1,
+          redactStringValues: redactNestedStrings,
+        ),
       );
       final suffix = value.length > 30 ? ', …' : '';
       return '[${items.join(', ')}$suffix] (List length=${value.length})';
     }
     if (value is Map) {
-      if (depth >= 3) return 'Map(length=${value.length})';
+      if (depth >= 8) return 'Map(length=${value.length})';
       final entries = <String>[];
       for (final entry in value.entries.take(30)) {
         final entryKey = entry.key;
@@ -346,7 +350,7 @@ final class AuthManager {
     return '<${value.runtimeType}>';
   }
 
-  bool isSensitiveDiagnosticKey(String key) {
+  bool _isSensitiveDiagnosticKey(String key) {
     return key.contains('token') ||
         key.contains('secret') ||
         key.contains('password') ||
