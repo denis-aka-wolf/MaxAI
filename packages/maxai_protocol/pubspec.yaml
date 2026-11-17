@@ -1,0 +1,11 @@
+name: maxai_protocol
+description: Исследовательское протокольное ядро MAX для проекта MaxAI.
+version: 0.1.0
+publish_to: none
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+dependencies:
+  msgpack_dart: ^1.0.1
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.25.8
