@@ -36,6 +36,36 @@ void main() {
     expect(frame.payload, <int>[1, 2]);
   });
 
+  test('skips MAX leading integers before decoding response payload', () {
+    final bytes = codec.encode(
+      command: 1,
+      sequence: 0,
+      opcode: 6,
+      payload: <int>[0xF0, 0x4B, 0x81, 0xA1, 0x61, 0x01],
+      flags: 1,
+    );
+
+    final frame = codec.decode(bytes)!;
+    expect(frame.flags, 1);
+    expect(codec.decodePayload(frame), <int>[0x81, 0xA1, 0x61, 0x01]);
+  });
+
+  test('rejects a truncated MAX leading integer prefix', () {
+    final bytes = codec.encode(
+      command: 1,
+      sequence: 0,
+      opcode: 6,
+      payload: <int>[0xF0],
+      flags: 1,
+    );
+
+    final frame = codec.decode(bytes)!;
+    expect(
+      () => codec.decodePayload(frame),
+      throwsFormatException,
+    );
+  });
+
   test('returns null for incomplete header or payload', () {
     expect(codec.decode(Uint8List(9)), isNull);
     final full = codec.encode(command: 1, sequence: 0, opcode: 1, payload: <int>[1, 2, 3]);
