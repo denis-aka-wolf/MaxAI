@@ -147,27 +147,45 @@ void main() {
     expect(connection.pendingRequestCount, 0);
   });
 
-  test('sequence allocation skips currently pending sequence', () async {
+  test('sequence allocation skips a sequence that is still pending', () async {
+    final manager = SequenceManager();
+    connection = ProtocolConnection(
+      transport: transport,
+      codec: codec,
+      sequenceManager: manager,
+    );
     await connection.connect();
 
-    final first = connection.request(
+    final firstFuture = connection.request(
       opcode: 49,
       payload: <int>[],
     );
     await Future<void>.delayed(Duration.zero);
 
-    // Sequence manager возвращается к 0, но он уже занят.
-    final secondSequenceManager = SequenceManager(initialValue: 0xFFFF);
-    connection = ProtocolConnection(
-      transport: transport,
-      codec: codec,
-      sequenceManager: secondSequenceManager,
-    );
-    // Этот тест проверяет только контракт менеджера sequence отдельно,
-    // поскольку отдельное соединение не разделяет pending registry.
-    expect(secondSequenceManager.next(), 0);
+    // Продвигаем общий 16-битный счётчик до 0xFFFF.
+    for (var i = 0; i < 0xFFFF; i++) {
+      manager.next();
+    }
 
-    await connection.close();
-    await expectLater(first, throwsStateError);
+    final secondFuture = connection.request(
+      opcode: 50,
+      payload: <int>[],
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    final requests = transport.sent.map((bytes) => codec.decode(bytes)!).toList();
+    expect(requests.map((frame) => frame.sequence), <int>[0, 1]);
+
+    for (final request in requests) {
+      transport.controller.add(codec.encode(
+        command: ProtocolCommand.response.value,
+        sequence: request.sequence,
+        opcode: request.opcode,
+        payload: <int>[],
+      ));
+    }
+
+    await Future.wait([firstFuture, secondFuture]);
+    expect(connection.pendingRequestCount, 0);
   });
 }
