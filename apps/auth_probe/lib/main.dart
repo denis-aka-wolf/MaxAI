@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:math';
 
-// ignore: deprecated_member_use
 // Flutter SDK marks the Material library deprecated in newer prerelease builds.
 // Keep the stable Flutter Material API until its replacement is available in stable.
+// ignore: deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:maxai_protocol/maxai_protocol.dart';
 import 'package:qr_flutter/qr_flutter.dart';
