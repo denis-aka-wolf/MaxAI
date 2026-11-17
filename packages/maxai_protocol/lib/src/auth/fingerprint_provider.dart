@@ -59,14 +59,6 @@ final class Sha256FingerprintProvider implements FingerprintProvider {
     if (deviceId.isEmpty) {
       throw ArgumentError.value(deviceId, 'deviceId', 'Must not be empty.');
     }
-    if (callsSeed > 0x7fffffffffffffff) {
-      throw RangeError.range(
-        callsSeed,
-        0,
-        0x7fffffffffffffff,
-        'callsSeed',
-      );
-    }
 
     final seed = ByteData(8)..setInt64(0, callsSeed, Endian.big);
     final suffix = <int>[
