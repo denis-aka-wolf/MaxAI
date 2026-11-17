@@ -8,8 +8,8 @@ final class TcpFrameCodec {
   const TcpFrameCodec({required this.payloadCodec, this.version = 10});
 
   static const int headerLength = 10;
-  static const int _leadingIntsFlag = 0x01;
-  static const int _leadingIntsCount = 2;
+  static const int _maxDecompressedPayload = 5 * 1024 * 1024;
+  static const int _zstdFlag = 0xFF;
 
   final PayloadCodec payloadCodec;
   final int version;
@@ -34,7 +34,6 @@ final class TcpFrameCodec {
     );
   }
 
-  /// Кодирует frame, payload которого уже представлен сериализованными байтами.
   Uint8List encodeFrame(ProtocolFrame frame) {
     frame.validate();
     final result = Uint8List(headerLength + frame.payload.length);
@@ -52,8 +51,6 @@ final class TcpFrameCodec {
     return result;
   }
 
-  /// null означает, что буфер пока содержит неполный frame.
-  /// Метод ожидает ровно один frame, без хвостовых байтов.
   ProtocolFrame? decode(Uint8List bytes) {
     if (bytes.length < headerLength) return null;
     final data = ByteData.sublistView(bytes);
@@ -74,80 +71,82 @@ final class TcpFrameCodec {
     );
   }
 
-  /// Декодирует payload с учётом служебного префикса MAX.
-  ///
-  /// При установленном flags bit 0 сервер добавляет перед MessagePack
-  /// объектом два MessagePack integer. Например, SESSION_INIT содержит
-  /// префикс F0 4B, то есть (-16, 75). Эти числа не являются payload API.
+  /// MAX: flags=0 означает отсутствие сжатия, flags=1..254 означает LZ4,
+  /// flags=255 означает Zstandard.
   Object? decodePayload(ProtocolFrame frame) {
-    if ((frame.flags & _leadingIntsFlag) == 0) {
-      return payloadCodec.decode(frame.payload);
-    }
-
-    final offset = _skipLeadingIntegers(
-      frame.payload,
-      count: _leadingIntsCount,
-    );
-    if (offset == frame.payload.length) {
-      throw const FormatException(
-        'MAX frame contains leading integers but no MessagePack payload.',
-      );
-    }
-
-    return payloadCodec.decode(
-      Uint8List.sublistView(frame.payload, offset),
-    );
+    final payloadBytes = switch (frame.flags) {
+      0 => frame.payload,
+      _ when frame.flags == _zstdFlag => throw const UnsupportedError(
+          'Zstandard-compressed MAX payload is not supported yet.',
+        ),
+      _ => _decompressLz4Block(frame.payload),
+    };
+    return payloadCodec.decode(payloadBytes);
   }
 
-  /// Возвращает позицию сразу после указанного количества MessagePack int.
-  int _skipLeadingIntegers(Uint8List bytes, {required int count}) {
-    var offset = 0;
-    for (var index = 0; index < count; index++) {
-      if (offset >= bytes.length) {
-        throw FormatException(
-          'MAX frame has fewer than $count leading integers.',
-        );
+  /// Декодирует raw LZ4 block без дополнительного frame-контейнера.
+  Uint8List _decompressLz4Block(Uint8List source) {
+    final output = <int>[];
+    var position = 0;
+
+    while (position < source.length) {
+      final token = source[position++];
+      var literalLength = token >> 4;
+
+      if (literalLength == 15) {
+        while (true) {
+          if (position >= source.length) {
+            throw const FormatException('Truncated LZ4 literal length extension.');
+          }
+          final extension = source[position++];
+          literalLength += extension;
+          if (extension != 255) break;
+        }
       }
-      offset = _skipInteger(bytes, offset);
-    }
-    return offset;
-  }
 
-  int _skipInteger(Uint8List bytes, int offset) {
-    final marker = bytes[offset];
+      if (literalLength > source.length - position) {
+        throw const FormatException('LZ4 literal length exceeds input.');
+      }
+      if (output.length + literalLength > _maxDecompressedPayload) {
+        throw const FormatException('LZ4 output exceeds the 5 MiB limit.');
+      }
 
-    // Positive fixint и negative fixint.
-    if (marker <= 0x7F || marker >= 0xE0) {
-      return offset + 1;
+      output.addAll(source.sublist(position, position + literalLength));
+      position += literalLength;
+
+      if (position == source.length) break;
+
+      if (source.length - position < 2) {
+        throw const FormatException('Truncated LZ4 match offset.');
+      }
+      final offset = source[position] | (source[position + 1] << 8);
+      position += 2;
+
+      if (offset == 0 || offset > output.length) {
+        throw const FormatException('Invalid LZ4 match offset.');
+      }
+
+      var matchLength = (token & 0x0F) + 4;
+      if ((token & 0x0F) == 15) {
+        while (true) {
+          if (position >= source.length) {
+            throw const FormatException('Truncated LZ4 match length extension.');
+          }
+          final extension = source[position++];
+          matchLength += extension;
+          if (extension != 255) break;
+        }
+      }
+
+      if (output.length + matchLength > _maxDecompressedPayload) {
+        throw const FormatException('LZ4 output exceeds the 5 MiB limit.');
+      }
+
+      for (var index = 0; index < matchLength; index++) {
+        output.add(output[output.length - offset]);
+      }
     }
 
-    switch (marker) {
-      case 0xCC: // uint 8
-      case 0xD0: // int 8
-        return _requireBytes(bytes, offset, 2);
-      case 0xCD: // uint 16
-      case 0xD1: // int 16
-        return _requireBytes(bytes, offset, 3);
-      case 0xCE: // uint 32
-      case 0xD2: // int 32
-        return _requireBytes(bytes, offset, 5);
-      case 0xCF: // uint 64
-      case 0xD3: // int 64
-        return _requireBytes(bytes, offset, 9);
-      default:
-        throw FormatException(
-          'MAX leading value is not a MessagePack integer: '
-          '0x${marker.toRadixString(16).padLeft(2, '0')}.',
-        );
-    }
-  }
-
-  int _requireBytes(Uint8List bytes, int offset, int encodedLength) {
-    if (bytes.length - offset < encodedLength) {
-      throw const FormatException(
-        'Truncated MessagePack integer in MAX leading prefix.',
-      );
-    }
-    return offset + encodedLength;
+    return Uint8List.fromList(output);
   }
 }
