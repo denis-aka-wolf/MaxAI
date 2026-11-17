@@ -137,6 +137,7 @@ final class AuthManager {
     return _runExclusive(() async {
       onLog?.call('Запрос QR-кода авторизации.');
       final payload = await _invoke(getQrOpcode, <String, Object?>{});
+      _logQrPayload(payload);
       return QrLoginRequest.fromPayload(payload);
     });
   }
@@ -240,6 +241,91 @@ final class AuthManager {
       );
     }
     return response.payload;
+  }
+
+  /// Печатает структуру ответа GET_QR до разбора моделью.
+  ///
+  /// Значения, которые позволяют воспользоваться чужой QR-сессией, не
+  /// выводятся: qrLink, trackId и любые поля с token/secret/password/code.
+  void _logQrPayload(Object? payload) {
+    final buffer = StringBuffer('GET_QR response payload: ');
+    if (payload is Map) {
+      buffer.write('Map(length=${payload.length}) {');
+      var index = 0;
+      for (final entry in payload.entries) {
+        if (index > 0) buffer.write(', ');
+        final key = entry.key;
+        buffer.write('${_formatDiagnosticValue(key)}: ');
+        final keyName = key is String ? key : '';
+        buffer.write(_formatDiagnosticValue(entry.value, key: keyName));
+        index++;
+      }
+      buffer.write('}');
+    } else {
+      buffer.write(_formatDiagnosticValue(payload));
+    }
+    onLog?.call(buffer.toString());
+  }
+
+  String _formatDiagnosticValue(
+    Object? value, {
+    String key = '',
+    int depth = 0,
+  }) {
+    final normalizedKey = key.toLowerCase();
+    if (normalizedKey.contains('token') ||
+        normalizedKey.contains('secret') ||
+        normalizedKey.contains('password') ||
+        normalizedKey.contains('qr') ||
+        normalizedKey.contains('trackid') ||
+        normalizedKey.contains('phone') ||
+        normalizedKey.contains('code')) {
+      return '<REDACTED>';
+    }
+
+    if (value == null) return 'null (Null)';
+    if (value is String) {
+      final visible = value.length <= 200
+          ? value
+          : '${value.substring(0, 200)}… (length=${value.length})';
+      return '${_quoteDiagnosticString(visible)} (String)';
+    }
+    if (value is num || value is bool) {
+      return '$value (${value.runtimeType})';
+    }
+    if (value is Uint8List) {
+      return 'Uint8List(length=${value.length})';
+    }
+    if (value is List) {
+      if (depth >= 3) return 'List(length=${value.length})';
+      final items = value.take(30).map(
+        (item) => _formatDiagnosticValue(item, depth: depth + 1),
+      );
+      final suffix = value.length > 30 ? ', …' : '';
+      return '[${items.join(', ')}$suffix] (List length=${value.length})';
+    }
+    if (value is Map) {
+      if (depth >= 3) return 'Map(length=${value.length})';
+      final entries = <String>[];
+      for (final entry in value.entries.take(30)) {
+        final entryKey = entry.key;
+        entries.add(
+          '${_formatDiagnosticValue(entryKey)}: '
+          '${_formatDiagnosticValue(
+            entry.value,
+            key: entryKey is String ? entryKey : '',
+            depth: depth + 1,
+          )}',
+        );
+      }
+      if (value.length > 30) entries.add('…');
+      return '{${entries.join(', ')}} (Map length=${value.length})';
+    }
+    return '<${value.runtimeType}>';
+  }
+
+  String _quoteDiagnosticString(String value) {
+    return '"${value.replaceAll(r'\\', r'\\\\').replaceAll('"', r'\\"').replaceAll('\n', r'\\n').replaceAll('\r', r'\\r')}"';
   }
 
   void _ensureReady() {
