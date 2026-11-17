@@ -12,7 +12,7 @@
 - WebSocket transport и абстрактный контракт транспорта.
 - `ProtocolConnection`: отправка REQUEST, сопоставление RESPONSE/ERROR по sequence, обработка EVENT, закрытие и обработка потери соединения.
 - `SessionManager`: mobile/web payload для `SESSION_INIT` (opcode 6), проверка ответа handshake и состояния MAX-сессии.
-- Модели `MaxUserAgent`, `HandshakeResponse`, `DeviceType` и `SessionState`.
+- Модели `MaxUserAgent`, `HandshakeResponse`, `DeviceType`, `SessionState` и `SyncState`.
 - `HeartbeatManager`: периодический PING (opcode 1), первый запрос сразу после запуска, без параллельных ping.
 - Автоматический пропуск занятых sequence ID при выдаче нового запроса.
 
@@ -28,9 +28,22 @@
 - Результаты различаются: токен входа, пароль 2FA или регистрация.
 - Секретные значения не включаются в диагностические сообщения.
 
-Для mobile SMS-запроса требуется `FingerprintProvider`. Реализован `Sha256FingerprintProvider`, повторяющий формулу `FingerprintGenerator` PyMax. Он требует хеши APK одной конкретной версии MAX; произвольные или смешанные значения не подходят. Для WEB поле fingerprint передаётся как null.
+Для mobile SMS-запроса и mobile LOGIN требуется `FingerprintProvider`. Реализован `Sha256FingerprintProvider`, повторяющий формулу `FingerprintGenerator` PyMax. Он требует хеши APK одной конкретной версии MAX; произвольные или смешанные значения не подходят.
 
-`AuthManager` возвращает токен вызывающему слою и не сохраняет его. Сохранение должно выполняться отдельным защищённым хранилищем. Получение токена не заменяет последующий `LOGIN`.
+## LOGIN и LOGIN2
+
+Добавлен `LoginManager`, сверенный с исходниками PyMax **2.5.0** (`dev/2.5.0`):
+
+- Mobile LOGIN: opcode `19`, payload `SyncPayload`, включая userAgent, token, fingerprint, sync markers, `exp` и `configHash`.
+- Web LOGIN: opcode `19`, payload `WebSyncPayload`. Поле `presenceSync` намеренно не отправляется: фактический `from_sync_state()` PyMax 2.5.0 его не передаёт.
+- LOGIN2: opcode `8`, отправляется только если хотя бы один из флагов `configEnabled`, `contactEnabled`, `profileEnabled` равен true.
+- LOGIN2 payload содержит `needProfile`, `contactsSync` и `configHash`. При выключенном `contactEnabled` значение `contactsSync` равно `-1`.
+- `LoginResponse` и `Login2Response` сохраняют исходные поля payload; чаты, профиль, сообщения и контакты пока представлены исходными структурами MessagePack.
+- Sync markers обновляются по `time` из LOGIN; LOGIN2 обновляет только `configHash`.
+- Обновлённый токен используется только если сервер вернул непустую строку. Иначе сохраняется исходный токен.
+- `LoginBootstrapResult` возвращает итоговый токен, sync state, профиль и контакты с учётом флагов.
+
+`AuthManager` возвращает токен вызывающему слою и не сохраняет его. Аналогично `LoginManager` не сохраняет токен или sync state: их нужно записать в защищённое хранилище сессии после успешного завершения bootstrap.
 
 ## SESSION_INIT
 
@@ -40,8 +53,6 @@
 - Web: `userAgent` с ограниченным набором полей и `deviceId`.
 - Opcode: `6`.
 - Ответ разбирает `callsSeed` и `app-update-type`; остальные поля сохраняются в `raw`.
-
-`SessionManager` не выполняет SMS/QR авторизацию и не отправляет LOGIN. `HeartbeatManager` реализует отдельный PING-цикл, который можно запускать после успешного handshake.
 
 ## Значения command
 
@@ -54,7 +65,7 @@
 | EVENT | 2 |
 | ERROR | 3 |
 
-Ответы RESPONSE и ERROR сопоставляются с ожидающим запросом по sequence. ERROR пока возвращается вызывающему слою как обычный `DecodedProtocolFrame`: интерпретация payload ошибки относится к API-слою.
+Ответы RESPONSE и ERROR сопоставляются с ожидающим запросом по sequence. ERROR возвращается вызывающему слою как frame, чтобы API-слой мог интерпретировать payload ошибки.
 
 ## Проверка
 
@@ -71,11 +82,11 @@ GitHub Actions запускает эти проверки при изменен�
 ## Ограничения и неподтверждённые детали
 
 - Совместимость с актуальным сервером MAX не подтверждена.
-- Формат и значения command сверены с исходниками PyMax, но сами исходники PyMax не являются официальной спецификацией MAX.
-- Транспорт пока не содержит reconnect и авторизацию. Heartbeat реализован отдельным менеджером, но его поведение с актуальным сервером MAX не проверено.
-- Предположение о соответствии одного WebSocket message одному бинарному frame требует проверки на реальном сервере. Stream decoder при этом умеет собирать frame из нескольких chunks и разбирать несколько frame подряд.
+- Формат и значения command сверены с исходниками PyMax 2.5.0, но исходники PyMax не являются официальной спецификацией MAX.
+- Доменные модели чатов, профиля, сообщений и пользователей ещё не реализованы: LOGIN ответы сохраняются без потери исходных полей.
+- Транспорт пока не содержит reconnect. Heartbeat, авторизация и LOGIN не проверены на реальном сервере MAX.
+- Предположение о соответствии одного WebSocket message одному бинарному frame требует проверки на реальном сервере.
 - Compression flags передаются в frame, но декомпрессия payload пока не реализована.
-- Ошибки ERROR не преобразуются в специализированные исключения.
 - Повторная отправка запросов после timeout намеренно не выполняется, чтобы не создавать дубли операций.
 
 Реализация предназначена для дальнейшего тестирования на отдельном аккаунте. Не использовать основной аккаунт до проверки протокола и рисков неофициального API.
