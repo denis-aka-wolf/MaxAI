@@ -572,3 +572,117 @@ MaxAI должен разделять:
 ---
 
 **Итог:** источники подтверждают наличие двух различных путей подключения (TCP/SMS и WebSocket/QR), бинарного TCP frame с 10-байтовым заголовком и MessagePack payload, а также JSON-подобного WebSocket envelope во второй реализации. Это достаточная основа для декомпозиции Dart-клиента, но недостаточно для объявления протокола полностью специфицированным. Следующий инженерный шаг — верификация полного lifecycle и протокольных fixtures, затем реализация транспортного слоя и handshake.
+
+
+---
+
+## 19. Уточнение по фактическому WebClient transport (проверка исходников 2026-11-17)
+
+Этот раздел уточняет и **заменяет выводы о фактическом wire format WebClient** из раздела 4.4. Приоритет имеет цепочка вызовов, реально используемая `WebClient`, а не наличие отдельного класса `WsProtocol`.
+
+### 19.1 Фактическая цепочка encode/decode
+
+Подтверждено следующими исходниками:
+
+- `src/pymax/client_web.py`: `WebClient._build_connection()` создаёт `WebSocketTransport`, `WSReader`, затем передаёт их в `ConnectionManager` вместе с `TcpProtocol()`.
+- `src/pymax/connection/readers/ws.py`: `WSReader.read()` просто возвращает результат `transport.recv()`, тип которого `bytes | str`.
+- `src/pymax/connection/connection.py`: `ConnectionManager.send()` и `request()` сериализуют frame через переданный protocol, а receive loop передаёт сырые данные в тот же protocol для decode.
+- `src/pymax/protocol/tcp/protocol.py`: `TcpProtocol.encode()` формирует TCP frame с версией 10 и MessagePack payload; `decode()` принимает bytes или str, для str делает UTF-8 encode, затем вызывает TCP framer и MessagePack decoder.
+- `src/pymax/protocol/ws/protocol.py`: `WsProtocol` отдельно сериализует envelope как JSON и имеет version 11, но **в текущем конструкторе PyMax WebClient этот класс не используется**.
+
+Следовательно, в исследованной версии PyMax WebClient использует WebSocket как транспортную оболочку, внутри которой передаются данные, закодированные `TcpProtocol`: бинарный frame с TCP-заголовком и MessagePack payload. Нельзя описывать фактический WebClient wire format как JSON только на основании существования `WsProtocol`.
+
+Это вывод о реализации конкретного форка PyMax на момент исследования, а не гарантия, что сервер принимает такой формат во всех версиях MAX.
+
+### 19.2 Практическое следствие для MaxAI
+
+Не объединять WebSocket transport и WebSocket JSON codec в одну обязательную пару. В Dart разделить уровни:
+
+- `WebSocketTransport`: соединение, отправка/приём WS messages, Origin и TLS;
+- `TcpFrameCodec`: бинарная структура frame;
+- `MessagePackPayloadCodec`: сериализация payload;
+- `ProtocolProfile`: конфигурация фактической комбинации transport + frame/payload codec.
+
+Для первого PyMax-compatible WebClient profile проверять комбинацию:
+
+`WebSocketTransport + TcpFrameCodec(version: 10) + MessagePackPayloadCodec`.
+
+Отдельный JSON envelope codec (version 11) держать как альтернативную экспериментальную реализацию, но не выбирать его для PyMax WebClient без отдельного подтверждения. max-user-api действительно использует JSON envelope version 11 в своей реализации, что означает расхождение реализаций, а не единый подтверждённый контракт.
+
+### 19.3 Важные детали ConnectionManager
+
+По `src/pymax/connection/connection.py`:
+
+- sequence начинается с `-1`, первый вызов `next_seq()` возвращает `0`;
+- sequence циклически увеличивается по модулю `0x10000`;
+- ожидающие запросы коррелируются по seq через `PendingRequests`;
+- ответы и error frames разрешают pending request;
+- входящие frames дополнительно передаются в event callback;
+- receive loop работает в отдельной задаче;
+- при закрытии соединения pending requests отменяются;
+- события диспетчеризуются отдельными задачами.
+
+В Dart требуется защита от повторного использования seq, пока предыдущий запрос с тем же seq ещё ожидает ответ, и корректная отмена pending requests при закрытии/потере соединения.
+
+### 19.4 Handshake, auth и login: подтверждённые уточнения
+
+По `src/pymax/app.py`, `src/pymax/api/session/service.py`, `src/pymax/api/auth/service.py`, `src/pymax/auth/sms.py`, `src/pymax/auth/qr.py`:
+
+Общий lifecycle PyMax:
+
+1. Открыть выбранный transport.
+2. Выполнить `SESSION_INIT` (opcode 6) через `SessionService.handshake()`.
+3. Если сохранённой сессии нет, выполнить соответствующий auth flow.
+4. Сохранить полученный token вместе с device/session metadata.
+5. Выполнить `LOGIN` (opcode 19) с sync payload.
+6. Если login flags требуют, выполнить дополнительный `LOGIN2`.
+7. Применить профиль, чаты, контакты и сообщения из login response.
+8. Запустить фоновый ping loop.
+
+SMS flow:
+- `AUTH_REQUEST` (opcode 17) отправляет phone, type и mode;
+- для non-WEB device `mode` генерируется на основе device_id, handshake `calls_seed` и архитектуры;
+- `AUTH` (opcode 18) отправляет временный token и verify_code;
+- ответ может содержать login_token, password_challenge или register_token;
+- 2FA password check выполняется отдельным opcode `AUTH_LOGIN_CHECK_PASSWORD`.
+
+QR flow:
+- `GET_QR` запрашивается с пустым payload;
+- QR response предоставляет track_id, qr_link, polling_interval и expires_at;
+- `GET_QR_STATUS` (проверка track_id) вызывается с серверным polling interval до expires_at;
+- после login_available выполняется `LOGIN_BY_QR` с track_id;
+- если результат содержит password_challenge, выполняется тот же password challenge flow;
+- затем общий lifecycle сохраняет token и выполняет login.
+
+Для WebClient login использует `WebSyncPayload`: token, chats_count (default 40), interactive, chats_sync, contacts_sync, presence_sync и drafts_sync. Значения должны браться из сохранённого sync state с fallback, определённым PyMax, а не зашиваться в MaxAI как вечные константы.
+
+### 19.5 История и отправка: уточнения
+
+По `src/pymax/api/messages/payloads.py` и `service.py`:
+
+- `ChatHistoryPayload.from_` сериализуется как ключ `from`;
+- если `from_` не передан, PyMax подставляет текущее Unix time в миллисекундах;
+- `forward`, `backward`, `backward_time`, `forward_time`, `get_chat`, `item_type`, `get_messages`, `interactive` входят в payload;
+- дефолт `backward=40` является дефолтом библиотеки, а не подтверждённым серверным пределом;
+- отправка текста вызывает `Formatter.format_markdown()`, создаёт `cid` как монотонно возрастающее значение на основе времени в миллисекундах, затем передаёт `chat_id`, вложенный `message` и `notify`;
+- вложения загружаются отдельными upload API до вызова `MSG_SEND`;
+- ответ `attachment.not.ready` в некоторых сценариях приводит к ожиданию upload notification и повторной отправке.
+
+MaxAI v1 всё равно реализует только текстовую отправку. Автоматический повтор отправки после сетевого timeout запрещён до проверки результата на сервере, чтобы не создавать дубли.
+
+### 19.6 Ссылки на проверенные исходники
+
+- [WebClient construction](https://github.com/denis-aka-wolf/PyMax/blob/main/src/pymax/client_web.py)
+- [WSReader](https://github.com/denis-aka-wolf/PyMax/blob/main/src/pymax/connection/readers/ws.py)
+- [ConnectionManager](https://github.com/denis-aka-wolf/PyMax/blob/main/src/pymax/connection/connection.py)
+- [TCP protocol codec](https://github.com/denis-aka-wolf/PyMax/blob/main/src/pymax/protocol/tcp/protocol.py)
+- [Separate WsProtocol implementation](https://github.com/denis-aka-wolf/PyMax/blob/main/src/pymax/protocol/ws/protocol.py)
+- [App lifecycle and invoke](https://github.com/denis-aka-wolf/PyMax/blob/main/src/pymax/app.py)
+- [Session service](https://github.com/denis-aka-wolf/PyMax/blob/main/src/pymax/api/session/service.py)
+- [Auth service](https://github.com/denis-aka-wolf/PyMax/blob/main/src/pymax/api/auth/service.py)
+- [SMS flow](https://github.com/denis-aka-wolf/PyMax/blob/main/src/pymax/auth/sms.py)
+- [QR flow](https://github.com/denis-aka-wolf/PyMax/blob/main/src/pymax/auth/qr.py)
+- [Message payload models](https://github.com/denis-aka-wolf/PyMax/blob/main/src/pymax/api/messages/payloads.py)
+- [Message service](https://github.com/denis-aka-wolf/PyMax/blob/main/src/pymax/api/messages/service.py)
+
+**Статус уточнения:** подтверждено чтением текущих исходников PyMax. Реальный обмен с актуальным сервером MAX ещё требует отдельной проверки. В частности, нужно проверить фактические типы WS messages (binary/text), серверные ответы на frame version 10, payload отдельных opcode, и совместимость этого пути с текущим сервером.
