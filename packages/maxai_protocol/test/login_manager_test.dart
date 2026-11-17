@@ -221,7 +221,7 @@ void main() {
     final payload = requestPayload(1);
     expect(payload.keys, containsAll(['token', 'chatsCount', 'interactive']));
     expect(payload.containsKey('chatCacheFingerprint'), isFalse);
-    expect(payload.containsKey('presenceSync'), isFalse);
+    expect(payload['presenceSync'], -1);
     reply(
       sequence: 1,
       opcode: LoginManager.loginOpcode,
