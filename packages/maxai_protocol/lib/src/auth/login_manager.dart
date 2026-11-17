@@ -157,8 +157,7 @@ final class LoginManager {
     }
     if (response.opcode != opcode) {
       throw LoginProtocolException(
-        'Unexpected response opcode ' + response.opcode.toString() +
-            ' for LOGIN opcode $opcode.',
+        'Unexpected response opcode ${response.opcode} for LOGIN opcode $opcode.',
         opcode: opcode,
       );
     }
@@ -186,5 +185,5 @@ final class LoginProtocolException implements Exception {
 
   @override
   String toString() =>
-      'LoginProtocolException(opcode: ' + opcode.toString() + ', message: $message)';
+      'LoginProtocolException(opcode: $opcode, message: $message)';
 }
