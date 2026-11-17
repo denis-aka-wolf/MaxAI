@@ -76,6 +76,11 @@ final class SessionManager {
   }
 
   Future<HandshakeResponse> _start(Map<String, Object?> payload) {
+    if (_state == SessionState.closed) {
+      return Future<HandshakeResponse>.error(
+        StateError('SessionManager is closed. Call reset() before starting again.'),
+      );
+    }
     if (_state == SessionState.ready && _handshakeResponse != null) {
       return Future<HandshakeResponse>.value(_handshakeResponse);
     }
@@ -147,6 +152,9 @@ final class SessionManager {
   }
 
   void close() {
+    if (_state == SessionState.initializing) {
+      throw StateError('Cannot close SessionManager while SESSION_INIT is in progress.');
+    }
     _handshakeResponse = null;
     _startFuture = null;
     _setState(SessionState.closed);
