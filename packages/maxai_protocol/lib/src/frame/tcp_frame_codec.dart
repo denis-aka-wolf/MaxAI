@@ -71,17 +71,22 @@ final class TcpFrameCodec {
     );
   }
 
-  /// MAX: flags=0 означает отсутствие сжатия, flags=1..254 означает LZ4,
-  /// flags=255 означает Zstandard.
-  Object? decodePayload(ProtocolFrame frame) {
-    final payloadBytes = switch (frame.flags) {
-      0 => frame.payload,
+  /// Возвращает байты payload после снятия транспортного сжатия,
+  /// но до декодирования MessagePack. Используется для диагностики протокола.
+  Uint8List decodePayloadBytes(ProtocolFrame frame) {
+    return switch (frame.flags) {
+      0 => Uint8List.fromList(frame.payload),
       _ when frame.flags == _zstdFlag => throw UnsupportedError(
           'Zstandard-compressed MAX payload is not supported yet.',
         ),
       _ => _decompressLz4Block(frame.payload),
     };
-    return payloadCodec.decode(payloadBytes);
+  }
+
+  /// MAX: flags=0 означает отсутствие сжатия, flags=1..254 означает LZ4,
+  /// flags=255 означает Zstandard.
+  Object? decodePayload(ProtocolFrame frame) {
+    return payloadCodec.decode(decodePayloadBytes(frame));
   }
 
   /// Декодирует raw LZ4 block без дополнительного frame-контейнера.
