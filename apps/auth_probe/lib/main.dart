@@ -124,7 +124,14 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       final deviceId = _newDeviceId();
       final userAgent = _createWebUserAgent();
       final connection = ProtocolConnection(
-        transport: WebSocketTransport(uri: uri),
+        transport: WebSocketTransport(
+          uri: uri,
+          headers: <String, dynamic>{
+            'Origin': 'https://web.max.ru',
+            if (userAgent.headerUserAgent != null)
+              'User-Agent': userAgent.headerUserAgent!,
+          },
+        ),
         codec: const TcpFrameCodec(
           payloadCodec: MessagePackPayloadCodec(),
         ),
