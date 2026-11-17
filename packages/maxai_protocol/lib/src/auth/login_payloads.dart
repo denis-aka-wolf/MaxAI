@@ -40,8 +40,8 @@ abstract final class LoginPayloads {
     bool interactive = true,
   }) {
     _require(token, 'token');
-    // PyMax 2.5.0 WebSyncPayload.from_sync_state не передаёт presenceSync,
-    // хотя поле присутствует в модели.
+    // presenceSync не передаётся в конструктор from_sync_state, но модель
+    // сериализует значение поля по умолчанию (-1) через model_dump().
     return <String, Object?>{
       'token': token,
       'chatsCount': defaultWebChatsCount,
@@ -49,6 +49,7 @@ abstract final class LoginPayloads {
       'chatsSync': sync.chatsSync,
       'contactsSync': sync.contactsSync,
       'draftsSync': sync.draftsSync,
+      'presenceSync': -1,
     };
   }
 
