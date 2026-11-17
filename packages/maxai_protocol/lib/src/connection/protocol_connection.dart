@@ -125,7 +125,7 @@ final class ProtocolConnection {
     unawaited(
       responseFuture.then<void>(
         (_) {},
-        onError: (Object _, StackTrace _) {},
+        onError: (Object error, StackTrace stackTrace) {},
       ),
     );
 
