@@ -43,7 +43,6 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
   ProtocolConnection? _connection;
   SessionManager? _sessionManager;
   AuthManager? _authManager;
-  LoginManager? _loginManager;
   QrLoginRequest? _qrRequest;
   Timer? _pollTimer;
 
@@ -321,7 +320,6 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     _connection = null;
     _sessionManager = null;
     _authManager = null;
-    _loginManager = null;
     if (connection != null) {
       try {
         await connection.close();
