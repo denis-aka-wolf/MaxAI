@@ -3,7 +3,6 @@ import 'dart:async';
 import '../connection/protocol_command.dart';
 import '../connection/protocol_connection.dart';
 import '../connection/protocol_connection_state.dart';
-import 'device_type.dart';
 import 'handshake_response.dart';
 import 'max_user_agent.dart';
 import 'session_init_payload.dart';
@@ -82,7 +81,7 @@ final class SessionManager {
       );
     }
     if (_state == SessionState.ready && _handshakeResponse != null) {
-      return Future<HandshakeResponse>.value(_handshakeResponse);
+      return Future<HandshakeResponse>.value(_handshakeResponse!);
     }
     final active = _startFuture;
     if (active != null) return active;
@@ -153,7 +152,9 @@ final class SessionManager {
 
   void close() {
     if (_state == SessionState.initializing) {
-      throw StateError('Cannot close SessionManager while SESSION_INIT is in progress.');
+      throw StateError(
+        'Cannot close SessionManager while SESSION_INIT is in progress.',
+      );
     }
     _handshakeResponse = null;
     _startFuture = null;
