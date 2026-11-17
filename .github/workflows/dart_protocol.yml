@@ -1,0 +1,29 @@
+name: Dart protocol package
+
+on:
+  push:
+    paths:
+      - "packages/maxai_protocol/**"
+      - ".github/workflows/dart_protocol.yml"
+  pull_request:
+    paths:
+      - "packages/maxai_protocol/**"
+      - ".github/workflows/dart_protocol.yml"
+
+jobs:
+  protocol:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/maxai_protocol
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - name: Install dependencies
+        run: dart pub get
+      - name: Analyze
+        run: dart analyze
+      - name: Test
+        run: dart test
