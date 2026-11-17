@@ -121,7 +121,6 @@ final class TcpFrameCodec {
       return offset + 1;
     }
 
-    final data = ByteData.sublistView(bytes);
     switch (marker) {
       case 0xCC: // uint 8
       case 0xD0: // int 8
