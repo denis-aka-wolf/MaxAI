@@ -71,6 +71,7 @@ final class ProtocolConnection {
       throw StateError('Connection is closing.');
     }
 
+    _closeFuture = null;
     _setState(ProtocolConnectionState.connecting);
     _streamDecoder.reset();
 
