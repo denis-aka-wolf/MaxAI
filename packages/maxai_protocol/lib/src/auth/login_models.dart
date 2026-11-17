@@ -162,7 +162,7 @@ Map<String, Object?> _stringMap(Object? value, String field) {
     if (entry.key is! String) {
       throw FormatException('$field response contains a non-string key.');
     }
-    result[entry.key as String] = entry.value;
+    result[entry.key] = entry.value;
   }
   return result;
 }
