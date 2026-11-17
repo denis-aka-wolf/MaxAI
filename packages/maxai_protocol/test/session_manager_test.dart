@@ -230,4 +230,62 @@ void main() {
     await expectLater(future, throwsFormatException);
     expect(manager.state, SessionState.failed);
   });
+  test('concurrent start calls share the in-flight handshake', () async {
+    await connection.connect();
+    final manager = SessionManager(connection: connection);
+
+    final first = manager.startMobile(
+      mtInstanceId: 'mt',
+      userAgent: mobileUserAgent,
+      deviceId: 'device',
+      clientSessionId: 1,
+    );
+    final second = manager.startMobile(
+      mtInstanceId: 'mt',
+      userAgent: mobileUserAgent,
+      deviceId: 'device',
+      clientSessionId: 2,
+    );
+
+    expect(identical(first, second), isTrue);
+    await sentPayload();
+    expect(transport.sent, hasLength(1));
+
+    replyWithHandshake();
+    await Future.wait([first, second]);
+    expect(manager.state, SessionState.ready);
+  });
+
+  test('close is rejected during handshake and closed manager requires reset', () async {
+    await connection.connect();
+    final manager = SessionManager(connection: connection);
+
+    final future = manager.startMobile(
+      mtInstanceId: 'mt',
+      userAgent: mobileUserAgent,
+      deviceId: 'device',
+      clientSessionId: 1,
+    );
+    await sentPayload();
+
+    expect(manager.close, throwsStateError);
+    replyWithHandshake();
+    await future;
+
+    manager.close();
+    expect(manager.state, SessionState.closed);
+    await expectLater(
+      manager.startMobile(
+        mtInstanceId: 'mt',
+        userAgent: mobileUserAgent,
+        deviceId: 'device',
+        clientSessionId: 1,
+      ),
+      throwsStateError,
+    );
+
+    manager.reset();
+    expect(manager.state, SessionState.idle);
+  });
+
 }
