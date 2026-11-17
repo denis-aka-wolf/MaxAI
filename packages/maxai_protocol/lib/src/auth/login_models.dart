@@ -33,7 +33,7 @@ final class LoginConfig {
     if (hash != null && hash is! String && hash is! int) {
       throw const FormatException('config.hash must be a string, integer or null.');
     }
-    return LoginConfig(hash: hash as ConfigHash?);
+    return LoginConfig(hash: hash);
   }
 }
 
@@ -159,10 +159,11 @@ Map<String, Object?> _stringMap(Object? value, String field) {
   }
   final result = <String, Object?>{};
   for (final entry in value.entries) {
-    if (entry.key is! String) {
+    final key = entry.key;
+    if (key is! String) {
       throw FormatException('$field response contains a non-string key.');
     }
-    result[entry.key] = entry.value;
+    result[key] = entry.value;
   }
   return result;
 }
