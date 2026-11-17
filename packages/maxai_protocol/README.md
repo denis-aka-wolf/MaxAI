@@ -35,7 +35,7 @@
 Добавлен `LoginManager`, сверенный с исходниками PyMax **2.5.0** (`dev/2.5.0`):
 
 - Mobile LOGIN: opcode `19`, payload `SyncPayload`, включая userAgent, token, fingerprint, sync markers, `exp` и `configHash`.
-- Web LOGIN: opcode `19`, payload `WebSyncPayload`. Поле `presenceSync` намеренно не отправляется: фактический `from_sync_state()` PyMax 2.5.0 его не передаёт.
+- Web LOGIN: opcode `19`, payload `WebSyncPayload`. Хотя `from_sync_state()` не передаёт `presenceSync` в конструктор, Pydantic сериализует default value `-1` через `model_dump()`, поэтому поле присутствует в wire payload.
 - LOGIN2: opcode `8`, отправляется только если хотя бы один из флагов `configEnabled`, `contactEnabled`, `profileEnabled` равен true.
 - LOGIN2 payload содержит `needProfile`, `contactsSync` и `configHash`. При выключенном `contactEnabled` значение `contactsSync` равно `-1`.
 - `LoginResponse` и `Login2Response` сохраняют исходные поля payload; чаты, профиль, сообщения и контакты пока представлены исходными структурами MessagePack.
