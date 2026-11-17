@@ -94,13 +94,7 @@ final class ProtocolConnection {
   /// ping и других однонаправленных команд.
   Future<void> sendFrame(ProtocolFrame frame) async {
     _ensureConnected();
-    final bytes = codec.encode(
-      command: frame.command,
-      sequence: frame.sequence,
-      opcode: frame.opcode,
-      payload: frame.payload,
-      flags: frame.flags,
-    );
+    final bytes = codec.encodeFrame(frame);
     await transport.send(bytes);
   }
 
@@ -127,7 +121,10 @@ final class ProtocolConnection {
     );
 
     try {
-      await transport.send(bytes);
+      await Future.wait<void>([
+        transport.send(bytes),
+        responseFuture.then<void>((_) {}),
+      ]);
     } catch (error, stackTrace) {
       _pending.fail(sequence, error, stackTrace);
       return responseFuture;
