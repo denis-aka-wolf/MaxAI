@@ -141,6 +141,26 @@ final class AuthManager {
     });
   }
 
+  /// Ожидает подтверждения QR до истечения срока действия ссылки.
+  /// Возвращает false при истечении срока и true после подтверждения.
+  Future<bool> waitForQrApproval(
+    QrLoginRequest request, {
+    void Function(QrLoginStatus status)? onStatus,
+  }) async {
+    while (DateTime.now().millisecondsSinceEpoch < request.expiresAt) {
+      final status = await checkQrLogin(request.trackId);
+      onStatus?.call(status);
+      if (status.loginAvailable == true) return true;
+      final remaining = request.expiresAt - DateTime.now().millisecondsSinceEpoch;
+      if (remaining <= 0) break;
+      final delay = request.pollingInterval < remaining
+          ? request.pollingInterval
+          : remaining;
+      await Future<void>.delayed(Duration(milliseconds: delay));
+    }
+    return false;
+  }
+
   Future<QrLoginStatus> checkQrLogin(String trackId) async {
     _ensureReady();
     return _runExclusive(() async {
