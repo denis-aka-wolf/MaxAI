@@ -11,7 +11,20 @@
 - Реестр ожидающих запросов с timeout и отменой.
 - WebSocket transport и абстрактный контракт транспорта.
 - `ProtocolConnection`: отправка REQUEST, сопоставление RESPONSE/ERROR по sequence, обработка EVENT, закрытие и обработка потери соединения.
+- `SessionManager`: mobile/web payload для `SESSION_INIT` (opcode 6), проверка ответа handshake и состояния MAX-сессии.
+- Модели `MaxUserAgent`, `HandshakeResponse`, `DeviceType` и `SessionState`.
 - Автоматический пропуск занятых sequence ID при выдаче нового запроса.
+
+## SESSION_INIT
+
+Реализация сверена с `SessionService` и payload-моделями исследованной версии PyMax:
+
+- Mobile: `mt_instanceid`, `userAgent`, `clientSessionId` (1..70), `deviceId`.
+- Web: `userAgent` с ограниченным набором полей и `deviceId`.
+- Opcode: `6`.
+- Ответ разбирает `callsSeed` и `app-update-type`; остальные поля сохраняются в `raw`.
+
+`SessionManager` не выполняет SMS/QR авторизацию, не отправляет LOGIN и не запускает ping. Эти обязанности остаются отдельными слоями.
 
 ## Значения command
 
