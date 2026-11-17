@@ -1,0 +1,22 @@
+name: maxai_auth_probe
+description: Windows test application for MAX WebSocket QR authentication.
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  maxai_protocol:
+    path: ../../packages/maxai_protocol
+  qr_flutter: ^4.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
