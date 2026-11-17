@@ -9,9 +9,9 @@
 ## Структура
 
 - `docs/MAX_Protocol_Specification.md` — исследование протокола.
-- `packages/maxai_protocol/` — самостоятельный Dart-пакет frame, MessagePack, транспортного соединения и начального MAX handshake (`SESSION_INIT`).
+- `packages/maxai_protocol/` — самостоятельный Dart-пакет frame, MessagePack, транспортного соединения, handshake, авторизации и начального входа в аккаунт.
 
-На текущем этапе реализованы протокольное соединение, `SessionManager` для mobile/web `SESSION_INIT`, `HeartbeatManager` для PING (opcode 1) и базовый `AuthManager`: SMS, 2FA, QR и подтверждение регистрации. Реализован алгоритм fingerprint PyMax с конфигурацией хешей APK. Следующий этап: LOGIN и синхронизация данных аккаунта. Совместимость с действующим сервером MAX пока не подтверждена.
+На текущем этапе реализованы протокольное соединение, mobile/web `SESSION_INIT`, `HeartbeatManager` для PING (opcode 1), базовая SMS/2FA/QR-авторизация и подтверждение регистрации. Добавлены mobile/web `LOGIN` (opcode 19), условный `LOGIN2` (opcode 8), модели ответов и управление sync markers по схемам PyMax 2.5.0. Совместимость с действующим сервером MAX пока не подтверждена.
 
 ## Проверка протокольного пакета
 
@@ -28,11 +28,7 @@ dart test
 
 [Dart Protocol CI](https://github.com/denis-aka-wolf/MaxAI/blob/main/.github/workflows/dart_protocol.yml)
 
-При изменении файлов пакета `packages/maxai_protocol/` GitHub Actions автоматически запускает:
-
-1. `dart pub get` — получение зависимостей.
-2. `dart analyze` — статический анализ кода.
-3. `dart test` — запуск тестов.
+При изменении файлов пакета `packages/maxai_protocol/` GitHub Actions автоматически запускает получение зависимостей, статический анализ и тесты.
 
 ## Принципы
 
