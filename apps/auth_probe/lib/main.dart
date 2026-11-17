@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:math';
 
+// ignore: deprecated_member_use
+// Flutter SDK marks the Material library deprecated in newer prerelease builds.
+// Keep the stable Flutter Material API until its replacement is available in stable.
 import 'package:flutter/material.dart';
 import 'package:maxai_protocol/maxai_protocol.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -42,7 +45,6 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
 
   ProtocolConnection? _connection;
   SessionManager? _sessionManager;
-  AuthManager? _authManager;
   QrLoginRequest? _qrRequest;
   Timer? _pollTimer;
 
@@ -154,7 +156,6 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
         deviceId: deviceId,
         onLog: _log,
       );
-      _authManager = auth;
 
       _log('Запрашиваем QR-код (opcode 288).');
       final qr = await auth.requestQrLogin();
@@ -319,7 +320,6 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     final connection = _connection;
     _connection = null;
     _sessionManager = null;
-    _authManager = null;
     if (connection != null) {
       try {
         await connection.close();
