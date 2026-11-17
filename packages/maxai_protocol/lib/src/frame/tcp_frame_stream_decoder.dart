@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
-import 'tcp_frame_codec.dart';
 import 'protocol_frame.dart';
+import 'tcp_frame_codec.dart';
 
 /// Собирает полные frame из произвольно фрагментированного TCP byte stream.
 ///
