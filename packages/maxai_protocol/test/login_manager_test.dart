@@ -23,9 +23,13 @@ final class _Transport implements ProtocolTransport {
   @override
   Stream<dynamic> get stream => controller.stream;
   @override
-  Future<void> connect() async => connected = true;
+  Future<void> connect() async {
+    connected = true;
+  }
   @override
-  Future<void> send(Uint8List bytes) async => sent.add(Uint8List.fromList(bytes));
+  Future<void> send(Uint8List bytes) async {
+    sent.add(Uint8List.fromList(bytes));
+  }
   @override
   Future<void> close([int? code, String? reason]) async {
     connected = false;
