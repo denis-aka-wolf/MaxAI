@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:maxai_protocol/maxai_protocol.dart';
 import 'package:test/test.dart';
 
