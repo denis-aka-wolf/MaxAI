@@ -24,7 +24,7 @@ final class MessagePackExtension {
 /// В ответах MAX extension type 1 содержит ещё одно MessagePack-значение.
 /// Например, числовые expiresAt, pollingInterval и ttl обёрнуты именно так.
 final class MaxMessagePackExtDecoder extends ExtDecoder {
-  const MaxMessagePackExtDecoder();
+  MaxMessagePackExtDecoder();
 
   @override
   Object? decodeObject(int extType, Uint8List data) {
@@ -47,7 +47,7 @@ final class MaxMessagePackExtDecoder extends ExtDecoder {
 final class MessagePackPayloadCodec implements PayloadCodec {
   const MessagePackPayloadCodec();
 
-  static const MaxMessagePackExtDecoder _extDecoder =
+  static final MaxMessagePackExtDecoder _extDecoder =
       MaxMessagePackExtDecoder();
 
   @override
