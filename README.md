@@ -9,11 +9,11 @@
 ## Структура
 
 - `docs/MAX_Protocol_Specification.md` — исследование протокола.
-- `packages/maxai_protocol/` — самостоятельный Dart-пакет frame, MessagePack, транспортного соединения, handshake, авторизации и начального входа в аккаунт.
+- `packages/maxai_protocol/` — самостоятельный Dart-пакет frame, MessagePack, транспортного соединения, handshake, авторизации и начального входа в аккаунт.\n- `apps/auth_probe/` — отдельное Flutter Windows-приложение для проверки WebSocket + QR авторизации на реальном сервере MAX.
 
 На текущем этапе реализованы протокольное соединение, mobile/web `SESSION_INIT`, `HeartbeatManager` для PING (opcode 1), базовая SMS/2FA/QR-авторизация и подтверждение регистрации. Добавлены mobile/web `LOGIN` (opcode 19), условный `LOGIN2` (opcode 8), модели ответов и управление sync markers по схемам PyMax 2.5.0. Совместимость с действующим сервером MAX пока не подтверждена.
 
-## Проверка протокольного пакета
+## Проверка авторизации MAX\n\nДля запуска диагностического приложения на Windows:\n\n```powershell\ncd apps/auth_probe\nflutter create . --platforms=windows\nflutter pub get\nflutter analyze\nflutter run -d windows\n```\n\nПриложение проверяет WebSocket, SESSION_INIT, QR, LOGIN и условный LOGIN2. TCP + TLS и SMS будут добавлены позже.\n\n## Проверка протокольного пакета
 
 Локальная проверка выполняется командами:
 
