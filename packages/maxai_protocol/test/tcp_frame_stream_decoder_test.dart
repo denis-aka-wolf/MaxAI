@@ -4,6 +4,7 @@ import 'package:maxai_protocol/maxai_protocol.dart';
 import 'package:test/test.dart';
 
 final class _BytesCodec implements PayloadCodec {
+  const _BytesCodec();
   @override
   Uint8List encode(Object? payload) => Uint8List.fromList(payload! as List<int>);
   @override
