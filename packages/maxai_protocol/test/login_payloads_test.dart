@@ -66,8 +66,9 @@ void main() {
       'chatsSync': 10,
       'contactsSync': 20,
       'draftsSync': 30,
+      'presenceSync': -1,
     });
-    expect(payload.containsKey('presenceSync'), isFalse);
+    expect(payload['presenceSync'], -1);
   });
 
   test('LOGIN2 disables contact sync when contact flag is false', () {
