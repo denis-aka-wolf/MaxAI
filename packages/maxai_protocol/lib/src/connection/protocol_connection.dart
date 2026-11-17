@@ -111,8 +111,6 @@ final class ProtocolConnection {
   }) async {
     _ensureConnected();
     final sequence = _allocateSequence();
-    final responseFuture = _pending.register(sequence, timeout: timeout);
-
     final bytes = codec.encode(
       command: ProtocolCommand.request.value,
       sequence: sequence,
@@ -120,6 +118,7 @@ final class ProtocolConnection {
       payload: payload,
       flags: flags,
     );
+    final responseFuture = _pending.register(sequence, timeout: timeout);
 
     try {
       await Future.wait<void>([
