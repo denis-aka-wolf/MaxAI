@@ -315,6 +315,67 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     );
   }
 
+  Future<String?> _requestTwoFactorPassword(String? hint) async {
+    final controller = TextEditingController();
+    try {
+      return await showDialog<String>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Подтверждение входа MAX'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Для завершения входа MAX требует пароль двухфакторной аутентификации.',
+              ),
+              if (hint != null && hint.trim().isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text('Подсказка: $hint'),
+              ],
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                obscureText: true,
+                enableSuggestions: false,
+                autocorrect: false,
+                decoration: const InputDecoration(
+                  labelText: 'Пароль 2FA',
+                  border: OutlineInputBorder(),
+                ),
+                onSubmitted: (value) {
+                  final password = value.trim();
+                  if (password.isNotEmpty) {
+                    Navigator.of(dialogContext).pop(password);
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Отмена'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final password = controller.text.trim();
+                if (password.isNotEmpty) {
+                  Navigator.of(dialogContext).pop(password);
+                }
+              },
+              child: const Text('Продолжить'),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      controller.dispose();
+    }
+  }
+
   Future<void> _completeQrLogin(
     AuthManager auth,
     QrLoginRequest qr,
@@ -322,15 +383,45 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     String deviceId,
   ) async {
     _log('MAX подтвердил QR. Выполняем LOGIN_BY_QR (opcode 291).');
-    final authResult = await auth.confirmQrLogin(qr.trackId);
+    var authResult = await auth.confirmQrLogin(qr.trackId);
+
+    // Подтверждение QR может завершиться не выдачей LOGIN-токена,
+    // а запросом пароля двухфакторной аутентификации.
+    if (authResult.stage == AuthStage.passwordRequired) {
+      final challenge = authResult.challenge;
+      if (challenge == null) {
+        throw StateError('MAX запросил 2FA, но не передал данные passwordChallenge.');
+      }
+
+      _log('QR подтверждён. MAX требует пароль двухфакторной аутентификации.');
+      if (!mounted) return;
+      setState(() {
+        _status = 'Требуется пароль 2FA';
+        _error = null;
+      });
+
+      final password = await _requestTwoFactorPassword(challenge.hint);
+      if (password == null || password.isEmpty) {
+        throw StateError('Ввод пароля двухфакторной аутентификации отменён.');
+      }
+
+      authResult = await auth.submitTwoFactorPassword(
+        challenge: challenge,
+        password: password,
+      );
+    }
+
     if (!authResult.isAuthenticated || authResult.token == null) {
-      throw StateError('Сервер не вернул токен авторизации.');
+      throw StateError(
+        'MAX не выдал токен LOGIN после завершения QR/2FA-авторизации '
+        '(этап: ${authResult.stage}).',
+      );
     }
 
     if (!mounted) return;
     setState(() {
       _authenticated = true;
-      _status = 'QR подтверждён, выполняется LOGIN';
+      _status = 'Авторизация подтверждена, выполняется LOGIN';
     });
     _log('Токен авторизации получен. Значение токена скрыто.');
 
