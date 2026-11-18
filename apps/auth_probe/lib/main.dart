@@ -1148,243 +1148,255 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
+            Expanded(
+              child: SingleChildScrollView(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text('Подключение WebSocket + QR',
-                        style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _uriController,
-                      enabled: !_busy,
-                      decoration: const InputDecoration(
-                        labelText: 'WebSocket URL',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: _timezoneController,
-                      enabled: !_busy,
-                      decoration: const InputDecoration(
-                        labelText: 'Часовой пояс',
-                        hintText: 'Например, Europe/Helsinki',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: _phoneController,
-                      enabled: !_busy,
-                      keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        labelText: 'Номер телефона для SMS-входа',
-                        hintText: '+358...',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Диагностика TLS и сертификатов Windows',
-                            style: Theme.of(context).textTheme.titleSmall),
-                        const SizedBox(height: 8),
-                        _certificateStatusRow('Russian Trusted Root CA', _rootCertificateStatus),
-                        _certificateStatusRow('Russian Trusted Sub CA 2024', _intermediateCertificateStatus),
-                        _certificateStatusRow('TLS стандартный контекст', _windowsTlsStatus),
-                        _certificateStatusRow('TLS MaxAI / pinned Root', _maxAiTlsStatus),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            OutlinedButton.icon(
-                              onPressed: _busy || _certificateBusy ? null : () => _runCertificateCheck(WindowsCertificateKind.root),
-                              icon: const Icon(Icons.search),
-                              label: const Text('Проверить Root'),
-                            ),
-                            OutlinedButton.icon(
-                              onPressed: _busy || _certificateBusy ? null : () => _runCertificateCheck(WindowsCertificateKind.intermediate),
-                              icon: const Icon(Icons.search),
-                              label: const Text('Проверить Sub CA'),
-                            ),
-                            FilledButton.tonalIcon(
-                              onPressed: _busy || _certificateBusy ? null : () => _installCertificate(WindowsCertificateKind.root),
-                              icon: const Icon(Icons.download),
-                              label: const Text('Установить Root'),
-                            ),
-                            FilledButton.tonalIcon(
-                              onPressed: _busy || _certificateBusy ? null : () => _installCertificate(WindowsCertificateKind.intermediate),
-                              icon: const Icon(Icons.download),
-                              label: const Text('Установить Sub CA'),
-                            ),
-                            OutlinedButton.icon(
-                              onPressed: _busy || _certificateBusy
-                                  ? null
-                                  : () => _checkApiTls(usePinnedRoot: false),
-                              icon: const Icon(Icons.shield_outlined),
-                              label: const Text('TLS: Default'),
-                            ),
-                            OutlinedButton.icon(
-                              onPressed: _busy || _certificateBusy
-                                  ? null
-                                  : () => _checkApiTls(usePinnedRoot: true),
-                              icon: _certificateBusy
-                                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                                  : const Icon(Icons.verified_user_outlined),
-                              label: const Text('TLS: MaxAI'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 8,
-                      children: [
-                        FilledButton.icon(
-                          onPressed: _busy ? null : _connectAndStartQr,
-                          icon: const Icon(Icons.qr_code),
-                          label: const Text('Подключиться / восстановить авторизацию'),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: _busy || _loginComplete
-                              ? null
-                              : _connectAndStartSms,
-                          icon: const Icon(Icons.sms_outlined),
-                          label: const Text('Войти по SMS'),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: _connected || _busy ? _stop : null,
-                          icon: const Icon(Icons.stop),
-                          label: const Text('Остановить'),
-                        ),
-                        if (_loginComplete)
-                          OutlinedButton.icon(
-                            onPressed: _busy ? null : _logout,
-                            icon: const Icon(Icons.logout),
-                            label: const Text('Выйти из аккаунта'),
-                          ),
-                      ],
-                    ),
+                            Card(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Подключение WebSocket + QR',
+                                          style: Theme.of(context).textTheme.titleMedium),
+                                      const SizedBox(height: 12),
+                                      TextField(
+                                        controller: _uriController,
+                                        enabled: !_busy,
+                                        decoration: const InputDecoration(
+                                          labelText: 'WebSocket URL',
+                                          border: OutlineInputBorder(),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      TextField(
+                                        controller: _timezoneController,
+                                        enabled: !_busy,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Часовой пояс',
+                                          hintText: 'Например, Europe/Helsinki',
+                                          border: OutlineInputBorder(),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      TextField(
+                                        controller: _phoneController,
+                                        enabled: !_busy,
+                                        keyboardType: TextInputType.phone,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Номер телефона для SMS-входа',
+                                          hintText: '+358...',
+                                          border: OutlineInputBorder(),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Диагностика TLS и сертификатов Windows',
+                                              style: Theme.of(context).textTheme.titleSmall),
+                                          const SizedBox(height: 8),
+                                          _certificateStatusRow('Russian Trusted Root CA', _rootCertificateStatus),
+                                          _certificateStatusRow('Russian Trusted Sub CA 2024', _intermediateCertificateStatus),
+                                          _certificateStatusRow('TLS стандартный контекст', _windowsTlsStatus),
+                                          _certificateStatusRow('TLS MaxAI / pinned Root', _maxAiTlsStatus),
+                                          const SizedBox(height: 10),
+                                          Wrap(
+                                            spacing: 8,
+                                            runSpacing: 8,
+                                            children: [
+                                              OutlinedButton.icon(
+                                                onPressed: _busy || _certificateBusy ? null : () => _runCertificateCheck(WindowsCertificateKind.root),
+                                                icon: const Icon(Icons.search),
+                                                label: const Text('Проверить Root'),
+                                              ),
+                                              OutlinedButton.icon(
+                                                onPressed: _busy || _certificateBusy ? null : () => _runCertificateCheck(WindowsCertificateKind.intermediate),
+                                                icon: const Icon(Icons.search),
+                                                label: const Text('Проверить Sub CA'),
+                                              ),
+                                              FilledButton.tonalIcon(
+                                                onPressed: _busy || _certificateBusy ? null : () => _installCertificate(WindowsCertificateKind.root),
+                                                icon: const Icon(Icons.download),
+                                                label: const Text('Установить Root'),
+                                              ),
+                                              FilledButton.tonalIcon(
+                                                onPressed: _busy || _certificateBusy ? null : () => _installCertificate(WindowsCertificateKind.intermediate),
+                                                icon: const Icon(Icons.download),
+                                                label: const Text('Установить Sub CA'),
+                                              ),
+                                              OutlinedButton.icon(
+                                                onPressed: _busy || _certificateBusy
+                                                    ? null
+                                                    : () => _checkApiTls(usePinnedRoot: false),
+                                                icon: const Icon(Icons.shield_outlined),
+                                                label: const Text('TLS: Default'),
+                                              ),
+                                              OutlinedButton.icon(
+                                                onPressed: _busy || _certificateBusy
+                                                    ? null
+                                                    : () => _checkApiTls(usePinnedRoot: true),
+                                                icon: _certificateBusy
+                                                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                                                    : const Icon(Icons.verified_user_outlined),
+                                                label: const Text('TLS: MaxAI'),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 14),
+                                      Wrap(
+                                        spacing: 10,
+                                        runSpacing: 8,
+                                        children: [
+                                          FilledButton.icon(
+                                            onPressed: _busy ? null : _connectAndStartQr,
+                                            icon: const Icon(Icons.qr_code),
+                                            label: const Text('Подключиться / восстановить авторизацию'),
+                                          ),
+                                          OutlinedButton.icon(
+                                            onPressed: _busy || _loginComplete
+                                                ? null
+                                                : _connectAndStartSms,
+                                            icon: const Icon(Icons.sms_outlined),
+                                            label: const Text('Войти по SMS'),
+                                          ),
+                                          OutlinedButton.icon(
+                                            onPressed: _connected || _busy ? _stop : null,
+                                            icon: const Icon(Icons.stop),
+                                            label: const Text('Остановить'),
+                                          ),
+                                          if (_loginComplete)
+                                            OutlinedButton.icon(
+                                              onPressed: _busy ? null : _logout,
+                                              icon: const Icon(Icons.logout),
+                                              label: const Text('Выйти из аккаунта'),
+                                            ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              if (qr != null) ...[
+                                const SizedBox(height: 12),
+                                Card(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        QrImageView(
+                                          data: qr.qrLink,
+                                          size: 210,
+                                          backgroundColor: Colors.white,
+                                        ),
+                                        const SizedBox(width: 20),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text('Отсканируй QR в приложении MAX',
+                                                  style: Theme.of(context).textTheme.titleMedium),
+                                              const SizedBox(height: 8),
+                                              const Text(
+                                                'Оставь это окно открытым. Приложение автоматически проверяет подтверждение QR и после него выполняет LOGIN.',
+                                              ),
+                                              const SizedBox(height: 8),
+                                              SelectableText(
+                                                'Действителен до: ${qr.expiresAtDateTime.toLocal()}',
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              if (_error != null) ...[
+                                const SizedBox(height: 8),
+                                Material(
+                                  color: Theme.of(context).colorScheme.errorContainer,
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12),
+                                    child: Text(_error!),
+                                  ),
+                                ),
+                              ],
+                              if (_profileSummary != null) ...[
+                                const SizedBox(height: 8),
+                                Card(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(14),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Результат', style: Theme.of(context).textTheme.titleMedium),
+                                        const SizedBox(height: 6),
+                                        Text(_profileSummary!),
+                                        if (_authenticatedSession != null) ...[
+                                          const SizedBox(height: 8),
+                                          const Text(
+                                            'Токен авторизации сохранён в зашифрованном хранилище Windows DPAPI '
+                                            'и будет использован при следующем запуске.',
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 12),
                   ],
                 ),
               ),
             ),
-            if (qr != null) ...[
-              const SizedBox(height: 12),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      QrImageView(
-                        data: qr.qrLink,
-                        size: 210,
-                        backgroundColor: Colors.white,
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(height: 12),
+                        Row(
                           children: [
-                            Text('Отсканируй QR в приложении MAX',
+                            Text('Журнал проверки',
                                 style: Theme.of(context).textTheme.titleMedium),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Оставь это окно открытым. Приложение автоматически проверяет подтверждение QR и после него выполняет LOGIN.',
-                            ),
-                            const SizedBox(height: 8),
-                            SelectableText(
-                              'Действителен до: ${qr.expiresAtDateTime.toLocal()}',
+                            const Spacer(),
+                            TextButton(
+                              onPressed: _logs.isEmpty
+                                  ? null
+                                  : () => setState(_logs.clear),
+                              child: const Text('Очистить'),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-            if (_error != null) ...[
-              const SizedBox(height: 8),
-              Material(
-                color: Theme.of(context).colorScheme.errorContainer,
-                borderRadius: BorderRadius.circular(12),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Text(_error!),
-                ),
-              ),
-            ],
-            if (_profileSummary != null) ...[
-              const SizedBox(height: 8),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Результат', style: Theme.of(context).textTheme.titleMedium),
-                      const SizedBox(height: 6),
-                      Text(_profileSummary!),
-                      if (_authenticatedSession != null) ...[
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Токен авторизации сохранён в зашифрованном хранилище Windows DPAPI '
-                          'и будет использован при следующем запуске.',
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            ],
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Text('Журнал проверки',
-                    style: Theme.of(context).textTheme.titleMedium),
-                const Spacer(),
-                TextButton(
-                  onPressed: _logs.isEmpty
-                      ? null
-                      : () => setState(_logs.clear),
-                  child: const Text('Очистить'),
-                ),
-              ],
-            ),
-            Expanded(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: _logs.isEmpty
-                    ? const Center(child: Text('Здесь появятся этапы проверки.'))
-                    : ListView.builder(
-                        reverse: true,
-                        padding: const EdgeInsets.all(12),
-                        itemCount: _logs.length,
-                        itemBuilder: (context, index) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 3),
-                          child: SelectableText(
-                            _logs[index],
-                            style: const TextStyle(
-                              fontFamily: 'Consolas',
-                              fontSize: 12,
+                        Expanded(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(12),
                             ),
+                            child: _logs.isEmpty
+                                ? const Center(child: Text('Здесь появятся этапы проверки.'))
+                                : ListView.builder(
+                                    reverse: true,
+                                    padding: const EdgeInsets.all(12),
+                                    itemCount: _logs.length,
+                                    itemBuilder: (context, index) => Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 3),
+                                      child: SelectableText(
+                                        _logs[index],
+                                        style: const TextStyle(
+                                          fontFamily: 'Consolas',
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                           ),
                         ),
-                      ),
-              ),
-            ),
+                      ],
+                    ),
           ],
         ),
       ),
