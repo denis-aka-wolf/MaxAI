@@ -204,6 +204,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
   final _uriController = TextEditingController(text: _defaultUri.toString());
   final _timezoneController = TextEditingController(text: 'Europe/Helsinki');
   final _phoneController = TextEditingController();
+  final _apiContactIdController = TextEditingController();
+  final _apiChatIdController = TextEditingController();
 
   ProtocolConnection? _connection;
   SessionManager? _sessionManager;
@@ -224,6 +226,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
   String _windowsTlsStatus = 'Не проверено';
   String _maxAiTlsStatus = 'Не проверено';
   bool _certificateBusy = false;
+  bool _apiBusy = false;
+  List<Map<String, Object?>> _lastApiChats = <Map<String, Object?>>[];
 
   final WindowsCertificateManager _certificateManager =
       WindowsCertificateManager();
@@ -254,6 +258,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     _uriController.dispose();
     _timezoneController.dispose();
     _phoneController.dispose();
+    _apiContactIdController.dispose();
+    _apiChatIdController.dispose();
     super.dispose();
   }
 
@@ -1033,6 +1039,97 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     return text.length > 500 ? text.substring(0, 500) : text;
   }
 
+
+  Future<void> _runApiCheck(
+    String label,
+    Future<String> Function() operation,
+  ) async {
+    if (_apiBusy || _busy || !_loginComplete || _connection?.isConnected != true) {
+      return;
+    }
+    setState(() => _apiBusy = true);
+    final stopwatch = Stopwatch()..start();
+    _log('API Probe: $label. Запрос выполняется...');
+    try {
+      final result = await operation();
+      stopwatch.stop();
+      _log('API Probe: $label завершён за ${stopwatch.elapsedMilliseconds} мс. $result');
+    } catch (error) {
+      stopwatch.stop();
+      _log('API Probe: $label завершился ошибкой за ${stopwatch.elapsedMilliseconds} мс: ${_safeError(error)}');
+    } finally {
+      if (mounted) setState(() => _apiBusy = false);
+    }
+  }
+
+  MaxReadOnlyApi _createReadOnlyApi() {
+    final connection = _connection;
+    if (connection == null || !connection.isConnected) {
+      throw StateError('Нет активного соединения с MAX.');
+    }
+    return MaxReadOnlyApi(connection: connection);
+  }
+
+  Future<String> _probeProfileSnapshot() async {
+    final session = _authenticatedSession;
+    if (session == null) throw StateError('Нет данных LOGIN.');
+    final profile = _createReadOnlyApi().profileFromLogin(session.login);
+    if (profile == null) return 'Профиль отсутствует в LOGIN/LOGIN2.';
+    return 'Профиль получен из LOGIN/LOGIN2; имя задано: ${profile.displayName != null}; contact ID задан: ${profile.contact?.id != null}.';
+  }
+
+  Future<String> _probeContactsSnapshot() async {
+    final session = _authenticatedSession;
+    if (session == null) throw StateError('Нет данных LOGIN.');
+    final contacts = _createReadOnlyApi().contactsFromLogin(session.login);
+    return 'Контактов в snapshot LOGIN/LOGIN2: ${contacts.length}.';
+  }
+
+  Future<String> _probeContactInfo() async {
+    final id = int.tryParse(_apiContactIdController.text.trim());
+    if (id == null || id <= 0) {
+      throw const FormatException('Укажи положительный числовой Contact ID.');
+    }
+    final contacts = await _createReadOnlyApi().getContactInfo(<int>[id]);
+    return 'CONTACT_INFO вернул записей: ${contacts.length}.';
+  }
+
+  Future<String> _probeChatsList() async {
+    final chats = await _createReadOnlyApi().getChats();
+    if (mounted) setState(() => _lastApiChats = chats);
+    return 'CHATS_LIST вернул чатов: ${chats.length}. Укажи Chat ID для следующих проверок.';
+  }
+
+  Future<String> _probeChatInfo() async {
+    final id = int.tryParse(_apiChatIdController.text.trim());
+    if (id == null || id <= 0) {
+      throw const FormatException('Укажи положительный числовой Chat ID.');
+    }
+    final chats = await _createReadOnlyApi().getChatInfo(<int>[id]);
+    return 'CHAT_INFO вернул чатов: ${chats.length}.';
+  }
+
+  Future<String> _probeChatMembers() async {
+    final id = int.tryParse(_apiChatIdController.text.trim());
+    if (id == null || id <= 0) {
+      throw const FormatException('Укажи положительный числовой Chat ID.');
+    }
+    final result = await _createReadOnlyApi().getChatMembers(chatId: id);
+    return 'CHAT_MEMBERS вернул участников: ${result.members.length}; следующий marker: ${result.marker}.';
+  }
+
+  Future<String> _probeChatHistory() async {
+    final id = int.tryParse(_apiChatIdController.text.trim());
+    if (id == null || id <= 0) {
+      throw const FormatException('Укажи положительный числовой Chat ID.');
+    }
+    final messages = await _createReadOnlyApi().getChatHistory(
+      chatId: id,
+      backward: 20,
+    );
+    return 'CHAT_HISTORY вернул сообщений: ${messages.length}. Текст сообщений не выводится в журнал.';
+  }
+
   Future<void> _stop() async {
     _pollTimer?.cancel();
     _pollTimer = null;
@@ -1281,6 +1378,94 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                                   ),
                                 ),
                               ),
+
+                              if (_loginComplete) ...[
+                                const SizedBox(height: 12),
+                                Card(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Read-only API Probe',
+                                          style: Theme.of(context).textTheme.titleMedium,
+                                        ),
+                                        const SizedBox(height: 6),
+                                        const Text(
+                                          'Безопасные проверки чтения. Профиль и список контактов берутся из LOGIN; остальные операции отправляют отдельные запросы.',
+                                        ),
+                                        const SizedBox(height: 12),
+                                        TextField(
+                                          controller: _apiContactIdController,
+                                          enabled: !_apiBusy,
+                                          keyboardType: TextInputType.number,
+                                          decoration: const InputDecoration(
+                                            labelText: 'Contact ID',
+                                            border: OutlineInputBorder(),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        TextField(
+                                          controller: _apiChatIdController,
+                                          enabled: !_apiBusy,
+                                          keyboardType: TextInputType.number,
+                                          decoration: const InputDecoration(
+                                            labelText: 'Chat ID',
+                                            border: OutlineInputBorder(),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        Wrap(
+                                          spacing: 8,
+                                          runSpacing: 8,
+                                          children: [
+                                            OutlinedButton(
+                                              onPressed: _apiBusy ? null : () => _runApiCheck('PROFILE snapshot', _probeProfileSnapshot),
+                                              child: const Text('Профиль из LOGIN'),
+                                            ),
+                                            OutlinedButton(
+                                              onPressed: _apiBusy ? null : () => _runApiCheck('CONTACTS snapshot', _probeContactsSnapshot),
+                                              child: const Text('Контакты из LOGIN'),
+                                            ),
+                                            OutlinedButton(
+                                              onPressed: _apiBusy ? null : () => _runApiCheck('CONTACT_INFO (32)', _probeContactInfo),
+                                              child: const Text('Информация о контакте'),
+                                            ),
+                                            OutlinedButton(
+                                              onPressed: _apiBusy ? null : () => _runApiCheck('CHATS_LIST (53)', _probeChatsList),
+                                              child: const Text('Список чатов'),
+                                            ),
+                                            OutlinedButton(
+                                              onPressed: _apiBusy ? null : () => _runApiCheck('CHAT_INFO (48)', _probeChatInfo),
+                                              child: const Text('Информация о чате'),
+                                            ),
+                                            OutlinedButton(
+                                              onPressed: _apiBusy ? null : () => _runApiCheck('CHAT_MEMBERS (59)', _probeChatMembers),
+                                              child: const Text('Участники чата'),
+                                            ),
+                                            OutlinedButton(
+                                              onPressed: _apiBusy ? null : () => _runApiCheck('CHAT_HISTORY (49)', _probeChatHistory),
+                                              child: const Text('История сообщений'),
+                                            ),
+                                          ],
+                                        ),
+                                        if (_apiBusy) ...[
+                                          const SizedBox(height: 10),
+                                          const LinearProgressIndicator(),
+                                        ],
+                                        if (_lastApiChats.isNotEmpty) ...[
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            'Последний список чатов: ${_lastApiChats.length}. ID и названия не выводятся автоматически.',
+                                            style: Theme.of(context).textTheme.bodySmall,
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
                               if (qr != null) ...[
                                 const SizedBox(height: 12),
                                 Card(
