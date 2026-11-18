@@ -12,6 +12,12 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Войти по SMS'), findsOneWidget);
+    expect(find.text('Проверить Root'), findsOneWidget);
+    expect(find.text('Проверить Sub CA'), findsOneWidget);
+    expect(find.text('Установить Root'), findsOneWidget);
+    expect(find.text('Установить Sub CA'), findsOneWidget);
+    expect(find.text('TLS: Default'), findsOneWidget);
+    expect(find.text('TLS: MaxAI'), findsOneWidget);
     expect(find.text('Журнал проверки'), findsOneWidget);
   });
 }

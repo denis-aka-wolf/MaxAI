@@ -219,7 +219,10 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
   String? _profileSummary;
   MaxAuthenticatedSession? _authenticatedSession;
   String? _error;
-  String _certificateStatus = 'Не проверено';
+  String _rootCertificateStatus = 'Не проверен';
+  String _intermediateCertificateStatus = 'Не проверен';
+  String _windowsTlsStatus = 'Не проверено';
+  String _maxAiTlsStatus = 'Не проверено';
   bool _certificateBusy = false;
 
   final WindowsCertificateManager _certificateManager =
@@ -351,66 +354,166 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
   }
 
   Future<SecurityContext> _prepareWindowsTlsContext() async {
-    final result = await _certificateManager.prepare(
-      confirmInstall: () async {
-        if (!mounted) return false;
-        return await showDialog<bool>(
-              context: context,
-              barrierDismissible: false,
-              builder: (dialogContext) => AlertDialog(
-                title: const Text('Установка корневого сертификата'),
-                content: const SelectableText(
-                  'MaxAI загрузил сертификат Russian Trusted Root CA '
-                  'с официального сайта Минцифры и проверил его SHA-1 отпечаток:\n\n'
-                  '8FF915CCAB7BC16F8C5C8099D53E0E115B3AEC2F\n\n'
-                  'Разрешить установить его в хранилище доверенных корневых '
-                  'центров текущего пользователя Windows? Это изменит доверие '
-                  'Windows и других приложений текущего пользователя. '
-                  'Администраторские права не требуются.',
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(dialogContext).pop(false),
-                    child: const Text('Не устанавливать'),
-                  ),
-                  FilledButton(
-                    onPressed: () => Navigator.of(dialogContext).pop(true),
-                    child: const Text('Установить'),
-                  ),
-                ],
-              ),
-            ) ??
-            false;
-      },
-    );
-
-    if (mounted) {
-      setState(() {
-        _certificateStatus = result.installedInWindowsStore
-            ? 'Корневой сертификат установлен'
-            : 'TLS доверие настроено для MaxAI';
-      });
-    }
-    _log(result.installedInWindowsStore
-        ? 'Russian Trusted Root CA проверен и установлен в CurrentUser\\Root.'
-        : 'Russian Trusted Root CA проверен. Он добавлен в TLS-контекст MaxAI; системное хранилище не изменялось.');
-    return result.securityContext;
+    final context = await _certificateManager.createTlsContext();
+    _log('TLS-контекст создан: системные корни Windows + закреплённый Russian Trusted Root CA.');
+    return context;
   }
 
-  Future<void> _checkWindowsCertificates() async {
+  Future<bool> _confirmCertificateInstall(
+    WindowsCertificateKind kind,
+    WindowsCertificateInfo info,
+  ) async {
+    if (!mounted) return false;
+    final isRoot = kind == WindowsCertificateKind.root;
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(isRoot ? 'Установка корневого сертификата' : 'Установка промежуточного сертификата'),
+            content: SelectableText(
+              '${info.subject}\nSHA-1: ${info.thumbprint}\nSHA-256: ${info.sha256}\n\n'
+              'Установка в хранилище текущего пользователя Windows: ${isRoot ? 'Root' : 'CA'}. '
+              'Это повлияет на доверие Windows и приложений текущего пользователя. '
+              'Права администратора не требуются.',
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Отмена')),
+              FilledButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Установить')),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  Future<void> _runCertificateCheck(WindowsCertificateKind kind) async {
     if (_certificateBusy || _busy) return;
     setState(() => _certificateBusy = true);
+    final isRoot = kind == WindowsCertificateKind.root;
     try {
-      await _prepareWindowsTlsContext();
-    } catch (error) {
-      _log('Проверка сертификатов не удалась: ${_safeError(error)}');
+      _log('Проверка ${isRoot ? 'корневого' : 'промежуточного'} сертификата: источник, отпечатки, Subject/Issuer, CA и срок действия.');
+      final info = await _certificateManager.inspect(kind);
+      final status = info.currentUserInstalled
+          ? 'Установлен: CurrentUser'
+          : info.localMachineInstalled
+              ? 'Установлен: LocalMachine'
+              : 'Проверен, не установлен';
       if (mounted) {
         setState(() {
-          _certificateStatus = 'Ошибка проверки';
-          _error = _safeError(error);
+          if (isRoot) {
+            _rootCertificateStatus = status;
+          } else {
+            _intermediateCertificateStatus = status;
+          }
+        });
+      }
+      _log('${info.subject}');
+      _log('Issuer: ${info.issuer}');
+      _log('SHA-1: ${info.thumbprint}; SHA-256: ${info.sha256}');
+      _log('Срок действия: ${info.notBefore} - ${info.notAfter}');
+      _log('Windows stores: CurrentUser=${info.currentUserInstalled}, LocalMachine=${info.localMachineInstalled}.');
+    } catch (error) {
+      _log('Ошибка проверки сертификата: ${_safeError(error)}');
+      if (mounted) setState(() {
+        if (isRoot) {
+          _rootCertificateStatus = 'Ошибка проверки';
+        } else {
+          _intermediateCertificateStatus = 'Ошибка проверки';
+        }
+      });
+    } finally {
+      if (mounted) setState(() => _certificateBusy = false);
+    }
+  }
+
+  Future<void> _installCertificate(WindowsCertificateKind kind) async {
+    if (_certificateBusy || _busy) return;
+    setState(() => _certificateBusy = true);
+    final isRoot = kind == WindowsCertificateKind.root;
+    try {
+      final info = await _certificateManager.inspect(kind);
+      if (info.installed) {
+        _log('Сертификат уже установлен в Windows. Повторная установка не требуется.');
+      } else if (await _confirmCertificateInstall(kind, info)) {
+        await _certificateManager.install(kind);
+        _log(isRoot
+            ? 'Russian Trusted Root CA установлен в CurrentUser\\Root.'
+            : 'Russian Trusted Sub CA 2024 установлен в CurrentUser\\CA.');
+      } else {
+        _log('Установка отменена. Хранилище Windows не изменено.');
+      }
+      final refreshed = await _certificateManager.inspect(kind);
+      final status = refreshed.currentUserInstalled
+          ? 'Установлен: CurrentUser'
+          : refreshed.localMachineInstalled
+              ? 'Установлен: LocalMachine'
+              : 'Проверен, не установлен';
+      if (mounted) setState(() {
+        if (isRoot) {
+          _rootCertificateStatus = status;
+        } else {
+          _intermediateCertificateStatus = status;
+        }
+      });
+    } catch (error) {
+      _log('Установка сертификата не удалась: ${_safeError(error)}');
+    } finally {
+      if (mounted) setState(() => _certificateBusy = false);
+    }
+  }
+
+  Future<void> _checkApiTls({required bool usePinnedRoot}) async {
+    if (_certificateBusy || _busy) return;
+    setState(() {
+      _certificateBusy = true;
+      if (usePinnedRoot) {
+        _maxAiTlsStatus = 'Проверяется...';
+      } else {
+        _windowsTlsStatus = 'Проверяется...';
+      }
+    });
+    SecureSocket? socket;
+    try {
+      _log(usePinnedRoot
+          ? 'TLS-проверка api2.oneme.ru:443 через TLS-контекст MaxAI с закреплённым корневым сертификатом.'
+          : 'TLS-проверка api2.oneme.ru:443 через стандартный TLS-контекст Dart без дополнительных сертификатов.');
+      final tlsContext = usePinnedRoot
+          ? await _certificateManager.createTlsContext()
+          : null;
+      socket = await SecureSocket.connect(
+        'api2.oneme.ru',
+        443,
+        context: tlsContext,
+        timeout: const Duration(seconds: 20),
+      );
+      final peer = socket.peerCertificate;
+      _log('TLS handshake успешен: api2.oneme.ru:443.');
+      if (peer != null) {
+        _log('Leaf: ${peer.subject}');
+        _log('Issuer: ${peer.issuer}');
+        _log('Срок действия leaf: ${peer.startValidity} - ${peer.endValidity}');
+      }
+      if (mounted) {
+        setState(() {
+          if (usePinnedRoot) {
+            _maxAiTlsStatus = 'Успешно';
+          } else {
+            _windowsTlsStatus = 'Успешно';
+          }
+        });
+      }
+    } catch (error) {
+      _log('TLS-проверка ${usePinnedRoot ? 'MaxAI' : 'Windows'} не пройдена: ${_safeError(error)}');
+      if (mounted) {
+        setState(() {
+          if (usePinnedRoot) {
+            _maxAiTlsStatus = 'Ошибка TLS';
+          } else {
+            _windowsTlsStatus = 'Ошибка TLS';
+          }
         });
       }
     } finally {
+      socket?.destroy();
       if (mounted) setState(() => _certificateBusy = false);
     }
   }
@@ -995,6 +1098,22 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     }
   }
 
+  Widget _certificateStatusRow(String label, String status) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Expanded(child: Text(label)),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(status, textAlign: TextAlign.end,
+                style: Theme.of(context).textTheme.bodySmall),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final qr = _qrRequest;
@@ -1064,36 +1183,58 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Row(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Диагностика сертификатов Windows',
-                                style: Theme.of(context).textTheme.titleSmall,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _certificateStatus,
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                            ],
-                          ),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: _busy || _certificateBusy
-                              ? null
-                              : _checkWindowsCertificates,
-                          icon: _certificateBusy
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Icon(Icons.verified_user_outlined),
-                          label: const Text('Проверить'),
+                        Text('Диагностика TLS и сертификатов Windows',
+                            style: Theme.of(context).textTheme.titleSmall),
+                        const SizedBox(height: 8),
+                        _certificateStatusRow('Russian Trusted Root CA', _rootCertificateStatus),
+                        _certificateStatusRow('Russian Trusted Sub CA 2024', _intermediateCertificateStatus),
+                        _certificateStatusRow('TLS стандартный контекст', _windowsTlsStatus),
+                        _certificateStatusRow('TLS MaxAI / pinned Root', _maxAiTlsStatus),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: _busy || _certificateBusy ? null : () => _runCertificateCheck(WindowsCertificateKind.root),
+                              icon: const Icon(Icons.search),
+                              label: const Text('Проверить Root'),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: _busy || _certificateBusy ? null : () => _runCertificateCheck(WindowsCertificateKind.intermediate),
+                              icon: const Icon(Icons.search),
+                              label: const Text('Проверить Sub CA'),
+                            ),
+                            FilledButton.tonalIcon(
+                              onPressed: _busy || _certificateBusy ? null : () => _installCertificate(WindowsCertificateKind.root),
+                              icon: const Icon(Icons.download),
+                              label: const Text('Установить Root'),
+                            ),
+                            FilledButton.tonalIcon(
+                              onPressed: _busy || _certificateBusy ? null : () => _installCertificate(WindowsCertificateKind.intermediate),
+                              icon: const Icon(Icons.download),
+                              label: const Text('Установить Sub CA'),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: _busy || _certificateBusy
+                                  ? null
+                                  : () => _checkApiTls(usePinnedRoot: false),
+                              icon: const Icon(Icons.shield_outlined),
+                              label: const Text('TLS: Default'),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: _busy || _certificateBusy
+                                  ? null
+                                  : () => _checkApiTls(usePinnedRoot: true),
+                              icon: _certificateBusy
+                                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                                  : const Icon(Icons.verified_user_outlined),
+                              label: const Text('TLS: MaxAI'),
+                            ),
+                          ],
                         ),
                       ],
                     ),
