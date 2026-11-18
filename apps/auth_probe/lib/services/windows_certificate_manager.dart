@@ -183,6 +183,7 @@ final class WindowsCertificateManager {
     }
     // Parse through Windows CryptoAPI and validate dates and CA constraints.
     await _readCertificateMetadata(file.path, kind);
+    await _verifyPinnedIssuerChain(file.path, kind);
     return file.path;
   }
 
@@ -256,6 +257,51 @@ final class WindowsCertificateManager {
     }
   }
 
+  Future<void> _verifyPinnedIssuerChain(
+    String certificatePath,
+    WindowsCertificateKind kind,
+  ) async {
+    final rootPath = kind == WindowsCertificateKind.root
+        ? certificatePath
+        : await _loadVerifiedCertificate(WindowsCertificateKind.root);
+    final script = r'''
+$ErrorActionPreference = 'Stop'
+$root = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new('__ROOT_PATH__')
+$target = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new('__TARGET_PATH__')
+$chain = [System.Security.Cryptography.X509Certificates.X509Chain]::new()
+$chain.ChainPolicy.RevocationMode = [System.Security.Cryptography.X509Certificates.X509RevocationMode]::NoCheck
+$chain.ChainPolicy.VerificationFlags = [System.Security.Cryptography.X509Certificates.X509VerificationFlags]::AllowUnknownCertificateAuthority
+$chain.ChainPolicy.ExtraStore.Add($root) | Out-Null
+[void]$chain.Build($target)
+if ($chain.ChainElements.Count -lt 1) { throw 'Certificate chain could not be built' }
+$last = $chain.ChainElements[$chain.ChainElements.Count - 1].Certificate
+if ($last.Thumbprint -ne '__ROOT_THUMB__') { throw 'Chain does not terminate at the pinned Russian Trusted Root CA' }
+$unexpected = @($chain.ChainStatus | Where-Object { $_.Status -ne [System.Security.Cryptography.X509Certificates.X509ChainStatusFlags]::UntrustedRoot })
+if ($unexpected.Count -gt 0) { throw ('Certificate chain validation failed: ' + (($unexpected | ForEach-Object { $_.StatusInformation.Trim() }) -join '; ')) }
+if ($target.Subject -ne $target.Issuer -and $target.Issuer -ne $root.Subject) {
+  throw 'Certificate issuer does not match the pinned root'
+}
+'CHAIN_OK'
+'''.replaceAll('__ROOT_PATH__', rootPath.replaceAll("'", "''"))
+        .replaceAll('__TARGET_PATH__', certificatePath.replaceAll("'", "''"))
+        .replaceAll('__ROOT_THUMB__', rootThumbprint);
+    final result = await Process.run(
+      'powershell.exe',
+      <String>['-NoProfile', '-NonInteractive', '-Command', script],
+      runInShell: false,
+    );
+    if (result.exitCode != 0 || !result.stdout.toString().contains('CHAIN_OK')) {
+      throw ProcessException(
+        'powershell.exe',
+        const <String>['-NoProfile', '-NonInteractive', '-Command', script],
+        result.stderr.toString().isEmpty
+            ? result.stdout.toString()
+            : result.stderr.toString(),
+        result.exitCode,
+      );
+    }
+  }
+
   Future<_CertificateMetadata> _readCertificateMetadata(
     String path,
     WindowsCertificateKind kind,
@@ -268,6 +314,12 @@ $basic = $cert.Extensions | Where-Object { $_.Oid.Value -eq '2.5.29.19' } | Sele
 if (-not $basic) { throw 'Basic Constraints extension is missing' }
 $constraints = [System.Security.Cryptography.X509Certificates.X509BasicConstraintsExtension]::new($basic, $basic.Critical)
 if (-not $constraints.CertificateAuthority) { throw 'Certificate is not a CA' }
+$keyUsageExtension = $cert.Extensions | Where-Object { $_.Oid.Value -eq '2.5.29.15' } | Select-Object -First 1
+if (-not $keyUsageExtension) { throw 'Key Usage extension is missing' }
+$keyUsage = [System.Security.Cryptography.X509Certificates.X509KeyUsageExtension]::new($keyUsageExtension, $keyUsageExtension.Critical)
+if (($keyUsage.KeyUsages -band [System.Security.Cryptography.X509Certificates.X509KeyUsageFlags]::KeyCertSign) -eq 0) {
+  throw 'Key Usage does not permit certificate signing'
+}
 [pscustomobject]@{
   Subject = $cert.Subject
   Issuer = $cert.Issuer
