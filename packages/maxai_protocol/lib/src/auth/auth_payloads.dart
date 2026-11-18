@@ -12,7 +12,9 @@ abstract final class AuthPayloads {
     return <String, Object?>{
       'phone': phone,
       'type': 'START_AUTH',
-      'mode': mode,
+      // PyMax сериализует payload через exclude_none=True:
+      // для WEB-клиента mode отсутствует, а не передаётся как null.
+      if (mode != null) 'mode': mode,
     };
   }
 
