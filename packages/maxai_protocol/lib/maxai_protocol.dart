@@ -5,6 +5,7 @@ export 'src/auth/fingerprint_provider.dart';
 export 'src/auth/login_manager.dart';
 export 'src/auth/login_models.dart';
 export 'src/auth/login_payloads.dart';
+export 'src/auth/profile_models.dart';
 export 'src/codec/message_pack_payload_codec.dart';
 export 'src/codec/payload_codec.dart';
 export 'src/connection/decoded_protocol_frame.dart';
