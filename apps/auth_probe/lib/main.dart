@@ -497,7 +497,6 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
           } on LoginProtocolException catch (error) {
             if (error.opcode != LoginManager.loginOpcode) rethrow;
             await WindowsDpapiStorage.delete(key: _tokenStorageKey);
-      await WindowsDpapiStorage.delete(key: _authMethodStorageKey);
             await WindowsDpapiStorage.delete(
               key: _authMethodStorageKey,
             );
@@ -533,6 +532,9 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
         } on LoginProtocolException catch (error) {
           if (error.opcode != LoginManager.loginOpcode) rethrow;
           await WindowsDpapiStorage.delete(key: _tokenStorageKey);
+          await WindowsDpapiStorage.delete(
+            key: _authMethodStorageKey,
+          );
           _log('Сервер отклонил сохранённый токен. Он удалён, потребуется новая QR-авторизация.');
         }
       }
@@ -881,6 +883,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     try {
       await _closeConnection();
       await WindowsDpapiStorage.delete(key: _tokenStorageKey);
+      await WindowsDpapiStorage.delete(key: _authMethodStorageKey);
 
       if (!mounted) return;
       setState(() {
