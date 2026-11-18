@@ -31,6 +31,85 @@ class AuthProbeApp extends StatelessWidget {
   }
 }
 
+
+class _TwoFactorPasswordDialog extends StatefulWidget {
+  const _TwoFactorPasswordDialog({this.hint});
+
+  final String? hint;
+
+  @override
+  State<_TwoFactorPasswordDialog> createState() =>
+      _TwoFactorPasswordDialogState();
+}
+
+class _TwoFactorPasswordDialogState
+    extends State<_TwoFactorPasswordDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final password = _controller.text.trim();
+    if (password.isNotEmpty) {
+      Navigator.of(context).pop(password);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hint = widget.hint;
+    return AlertDialog(
+      title: const Text('Подтверждение входа MAX'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Для завершения входа MAX требует пароль двухфакторной аутентификации.',
+          ),
+          if (hint != null && hint.trim().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text('Подсказка: $hint'),
+          ],
+          const SizedBox(height: 16),
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            obscureText: true,
+            enableSuggestions: false,
+            autocorrect: false,
+            decoration: const InputDecoration(
+              labelText: 'Пароль 2FA',
+              border: OutlineInputBorder(),
+            ),
+            onSubmitted: (_) => _submit(),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Отмена'),
+        ),
+        FilledButton(
+          onPressed: _submit,
+          child: const Text('Продолжить'),
+        ),
+      ],
+    );
+  }
+}
+
 class AuthProbeScreen extends StatefulWidget {
   const AuthProbeScreen({super.key});
 
@@ -315,65 +394,12 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     );
   }
 
-  Future<String?> _requestTwoFactorPassword(String? hint) async {
-    final controller = TextEditingController();
-    try {
-      return await showDialog<String>(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Подтверждение входа MAX'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Для завершения входа MAX требует пароль двухфакторной аутентификации.',
-              ),
-              if (hint != null && hint.trim().isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text('Подсказка: $hint'),
-              ],
-              const SizedBox(height: 16),
-              TextField(
-                controller: controller,
-                autofocus: true,
-                obscureText: true,
-                enableSuggestions: false,
-                autocorrect: false,
-                decoration: const InputDecoration(
-                  labelText: 'Пароль 2FA',
-                  border: OutlineInputBorder(),
-                ),
-                onSubmitted: (value) {
-                  final password = value.trim();
-                  if (password.isNotEmpty) {
-                    Navigator.of(dialogContext).pop(password);
-                  }
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Отмена'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final password = controller.text.trim();
-                if (password.isNotEmpty) {
-                  Navigator.of(dialogContext).pop(password);
-                }
-              },
-              child: const Text('Продолжить'),
-            ),
-          ],
-        ),
-      );
-    } finally {
-      controller.dispose();
-    }
+  Future<String?> _requestTwoFactorPassword(String? hint) {
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _TwoFactorPasswordDialog(hint: hint),
+    );
   }
 
   Future<void> _completeQrLogin(
