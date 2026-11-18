@@ -1420,7 +1420,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                                         if (apiContactIds.isNotEmpty) ...[
                                           const SizedBox(height: 8),
                                           DropdownButtonFormField<int>(
-                                            value: apiContactIds.contains(int.tryParse(_apiContactIdController.text))
+                                            initialValue: apiContactIds.contains(int.tryParse(_apiContactIdController.text))
                                                 ? int.tryParse(_apiContactIdController.text)
                                                 : null,
                                             decoration: const InputDecoration(
@@ -1449,7 +1449,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                                         if (apiChatIds.isNotEmpty) ...[
                                           const SizedBox(height: 8),
                                           DropdownButtonFormField<int>(
-                                            value: apiChatIds.contains(int.tryParse(_apiChatIdController.text))
+                                            initialValue: apiChatIds.contains(int.tryParse(_apiChatIdController.text))
                                                 ? int.tryParse(_apiChatIdController.text)
                                                 : null,
                                             decoration: const InputDecoration(
