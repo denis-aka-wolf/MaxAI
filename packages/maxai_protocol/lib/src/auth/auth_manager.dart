@@ -359,7 +359,13 @@ final class AuthManager {
         key.contains('phone') ||
         key.contains('code') ||
         key.contains('authorization') ||
-        key.contains('cookie');
+        key.contains('cookie') ||
+        key == 'baseurl' ||
+        key == 'baserawurl' ||
+        key.contains('avatar') ||
+        key.contains('photo') ||
+        key.contains('image') ||
+        key.contains('mediaurl');
   }
 
   String _quoteDiagnosticString(String value) {
