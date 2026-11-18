@@ -199,6 +199,33 @@ void main() {
     expect(transport.sent, isEmpty);
   });
 
+  test('ERROR frame becomes a safe API exception', () async {
+    final future = api.getChats(marker: 123);
+    final request = await expectRequest(53, <String, Object?>{'marker': 123});
+    transport.controller.add(codec.encode(
+      command: ProtocolCommand.error.value,
+      sequence: request['sequence']! as int,
+      opcode: 53,
+      payload: <String, Object?>{
+        'error': 'AUTH_REQUIRED',
+        'token': 'must-not-leak',
+      },
+    ));
+
+    await expectLater(
+      future,
+      throwsA(
+        isA<MaxReadOnlyApiException>()
+            .having((error) => error.opcode, 'opcode', 53)
+            .having(
+              (error) => error.toString(),
+              'safe message',
+              isNot(contains('must-not-leak')),
+            ),
+      ),
+    );
+  });
+
   test('rejects invalid IDs before sending a request', () async {
     await expectLater(api.getChatInfo(<int>[]), throwsArgumentError);
     await expectLater(api.getContactInfo(<int>[0]), throwsArgumentError);
