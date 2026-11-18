@@ -110,6 +110,81 @@ class _TwoFactorPasswordDialogState
   }
 }
 
+
+class _SmsCodeDialog extends StatefulWidget {
+  const _SmsCodeDialog({required this.codeLength});
+
+  final int codeLength;
+
+  @override
+  State<_SmsCodeDialog> createState() => _SmsCodeDialogState();
+}
+
+class _SmsCodeDialogState extends State<_SmsCodeDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final code = _controller.text.trim();
+    if (code.isNotEmpty) {
+      Navigator.of(context).pop(code);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Подтверждение по SMS'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.codeLength > 0
+                ? 'Введи код из SMS (${widget.codeLength} цифр).'
+                : 'Введи код из SMS.',
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            enableSuggestions: false,
+            autocorrect: false,
+            maxLength: widget.codeLength > 0 ? widget.codeLength : null,
+            decoration: const InputDecoration(
+              labelText: 'Код подтверждения',
+              border: OutlineInputBorder(),
+            ),
+            onSubmitted: (_) => _submit(),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Отмена'),
+        ),
+        FilledButton(
+          onPressed: _submit,
+          child: const Text('Подтвердить'),
+        ),
+      ],
+    );
+  }
+}
+
 class AuthProbeScreen extends StatefulWidget {
   const AuthProbeScreen({super.key});
 
@@ -124,6 +199,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
 
   final _uriController = TextEditingController(text: _defaultUri.toString());
   final _timezoneController = TextEditingController(text: 'Europe/Helsinki');
+  final _phoneController = TextEditingController();
 
   ProtocolConnection? _connection;
   SessionManager? _sessionManager;
@@ -163,6 +239,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     _closeConnection();
     _uriController.dispose();
     _timezoneController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -208,7 +285,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     );
   }
 
-  Future<void> _connectAndStartQr() async {
+  Future<void> _connectAndStartQr({bool useSms = false}) async {
     if (_busy) return;
     setState(() {
       _busy = true;
@@ -303,6 +380,11 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
         onLog: _log,
       );
 
+      if (useSms) {
+        await _runSmsAuthentication(auth, userAgent, deviceId);
+        return;
+      }
+
       final savedToken = await WindowsDpapiStorage.read(key: _tokenStorageKey);
       if (savedToken != null && savedToken.isNotEmpty) {
         _log('Сохранённый токен найден. Выполняем восстановительный LOGIN (opcode 19).');
@@ -349,6 +431,117 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       }
       await _closeConnection();
     }
+  }
+
+
+  Future<void> _connectAndStartSms() async {
+    if (_loginComplete) {
+      setState(() {
+        _error = 'Сначала выйди из текущего аккаунта.';
+      });
+      return;
+    }
+    if (_phoneController.text.trim().isEmpty) {
+      setState(() {
+        _error = 'Укажи номер телефона в международном формате.';
+      });
+      return;
+    }
+    await _connectAndStartQr(useSms: true);
+  }
+
+  Future<void> _runSmsAuthentication(
+    AuthManager auth,
+    MaxUserAgent userAgent,
+    String deviceId,
+  ) async {
+    final phone = _phoneController.text.trim();
+    _log('Запрашиваем SMS-код (AUTH_REQUEST, opcode 17).');
+    final smsRequest = await auth.requestSmsCode(phone);
+
+    if (!mounted) return;
+    setState(() {
+      _status = 'Ожидание SMS-кода';
+    });
+    _log(
+      'Запрос SMS принят. Ожидаем код длиной ${smsRequest.codeLength}; '
+      'доступно повторных запросов: ${smsRequest.requestCountLeft}.',
+    );
+
+    final code = await _requestSmsCode(smsRequest);
+    if (code == null || code.isEmpty) {
+      throw StateError('Ввод SMS-кода отменён.');
+    }
+
+    _log('Отправляем SMS-код (AUTH, opcode 18).');
+    var authResult = await auth.submitSmsCode(
+      requestToken: smsRequest.token,
+      code: code,
+    );
+
+    if (authResult.stage == AuthStage.passwordRequired) {
+      final challenge = authResult.challenge;
+      if (challenge == null) {
+        throw StateError('MAX запросил 2FA, но не передал данные passwordChallenge.');
+      }
+
+      _log('SMS-код принят. MAX требует пароль двухфакторной аутентификации.');
+      if (!mounted) return;
+      setState(() {
+        _status = 'Требуется пароль 2FA';
+        _error = null;
+      });
+
+      final password = await _requestTwoFactorPassword(challenge.hint);
+      if (password == null || password.isEmpty) {
+        throw StateError('Ввод пароля двухфакторной аутентификации отменён.');
+      }
+
+      authResult = await auth.submitTwoFactorPassword(
+        challenge: challenge,
+        password: password,
+      );
+    }
+
+    if (!authResult.isAuthenticated || authResult.token == null) {
+      throw StateError(
+        'SMS-авторизация не завершилась выдачей LOGIN-токена '
+        '(этап: ${authResult.stage}).',
+      );
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _authenticated = true;
+      _status = 'SMS подтверждён, выполняется LOGIN';
+    });
+    _log('SMS-авторизация завершена. Токен получен; значение скрыто.');
+
+    final login = LoginManager(
+      connection: _connection!,
+      sessionManager: _sessionManager!,
+      deviceType: DeviceType.web,
+      userAgent: userAgent,
+      deviceId: deviceId,
+      onLog: _log,
+    );
+
+    _log('Отправляем LOGIN (opcode 19).');
+    final result = await login.login(token: authResult.token!);
+    await WindowsDpapiStorage.write(
+      key: _tokenStorageKey,
+      value: result.effectiveToken,
+    );
+    _log('Токен авторизации сохранён в зашифрованном хранилище Windows DPAPI.');
+    _applyLoginResult(result);
+  }
+
+  Future<String?> _requestSmsCode(SmsCodeRequest request) {
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _SmsCodeDialog(codeLength: request.codeLength),
+    );
   }
 
   void _startPolling(
@@ -644,6 +837,17 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                         border: OutlineInputBorder(),
                       ),
                     ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _phoneController,
+                      enabled: !_busy,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(
+                        labelText: 'Номер телефона для SMS-входа',
+                        hintText: '+358...',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
                     const SizedBox(height: 14),
                     Wrap(
                       spacing: 10,
@@ -653,6 +857,13 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                           onPressed: _busy ? null : _connectAndStartQr,
                           icon: const Icon(Icons.qr_code),
                           label: const Text('Подключиться / восстановить авторизацию'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: _busy || _loginComplete
+                              ? null
+                              : _connectAndStartSms,
+                          icon: const Icon(Icons.sms_outlined),
+                          label: const Text('Войти по SMS'),
                         ),
                         OutlinedButton.icon(
                           onPressed: _connected || _busy ? _stop : null,
