@@ -78,8 +78,8 @@ final class MaxReadOnlyApi {
     if (chatId <= 0) {
       throw ArgumentError.value(chatId, 'chatId', 'Must be positive.');
     }
-    if (marker < 0 || count < 1 || count > 200) {
-      throw ArgumentError('marker must be >= 0 and count must be in 1..200.');
+    if (marker < 0 || count < 1) {
+      throw ArgumentError('marker must be >= 0 and count must be positive.');
     }
     final payload = await _invoke(
       opcode: chatMembersOpcode,
@@ -115,8 +115,8 @@ final class MaxReadOnlyApi {
     if (chatId <= 0) {
       throw ArgumentError.value(chatId, 'chatId', 'Must be positive.');
     }
-    if (forward < 0 || backward < 0 || backward > 100) {
-      throw ArgumentError('forward must be >= 0 and backward must be in 0..100.');
+    if (forward < 0 || backward < 0) {
+      throw ArgumentError('forward and backward must be >= 0.');
     }
     final payload = await _invoke(
       opcode: chatHistoryOpcode,
