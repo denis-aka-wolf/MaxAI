@@ -27,4 +27,5 @@ export 'src/session/session_manager.dart';
 export 'src/session/session_state.dart';
 export 'src/session/sync_state.dart';
 export 'src/transport/protocol_transport.dart';
+export 'src/transport/tcp_socket_transport.dart';
 export 'src/transport/web_socket_transport.dart';
