@@ -112,6 +112,8 @@ class WindowsDpapiStorage {
     const allowedKeys = <String>{
       'maxai.auth.token',
       'maxai.auth.device_id',
+      'maxai.auth.mt_instance_id',
+      'maxai.auth.method',
     };
     if (!allowedKeys.contains(key)) {
       throw ArgumentError.value(key, 'key', 'Неизвестный ключ хранилища.');
