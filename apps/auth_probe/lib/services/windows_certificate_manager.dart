@@ -301,7 +301,7 @@ if ($target.Subject -ne $target.Issuer -and $target.Issuer -ne $root.Subject) {
     if (result.exitCode != 0 || !result.stdout.toString().contains('CHAIN_OK')) {
       throw ProcessException(
         'powershell.exe',
-        const <String>['-NoProfile', '-NonInteractive', '-Command', script],
+        <String>['-NoProfile', '-NonInteractive', '-Command', script],
         result.stderr.toString().isEmpty
             ? result.stdout.toString()
             : result.stderr.toString(),
@@ -344,7 +344,7 @@ if (($keyUsage.KeyUsages -band [System.Security.Cryptography.X509Certificates.X5
     if (result.exitCode != 0) {
       throw ProcessException(
         'powershell.exe',
-        const <String>['-NoProfile', '-NonInteractive', '-Command', script],
+        <String>['-NoProfile', '-NonInteractive', '-Command', script],
         result.stderr.toString(),
         result.exitCode,
       );
@@ -389,7 +389,7 @@ $machine = Get-ChildItem ("Cert:\LocalMachine\" + $store) -ErrorAction SilentlyC
     if (result.exitCode != 0) {
       throw ProcessException(
         'powershell.exe',
-        const <String>['-NoProfile', '-NonInteractive', '-Command', script],
+        <String>['-NoProfile', '-NonInteractive', '-Command', script],
         result.stderr.toString(),
         result.exitCode,
       );
