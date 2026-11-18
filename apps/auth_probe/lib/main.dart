@@ -507,6 +507,13 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                       Text('Результат', style: Theme.of(context).textTheme.titleMedium),
                       const SizedBox(height: 6),
                       Text(_profileSummary!),
+                      if (_authenticatedSession != null) ...[
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Токен авторизации хранится только в памяти процесса '
+                          'и не записывается на диск.',
+                        ),
+                      ],
                     ],
                   ),
                 ),
