@@ -406,20 +406,22 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
           }
         });
       }
-      _log('${info.subject}');
+      _log(info.subject);
       _log('Issuer: ${info.issuer}');
       _log('SHA-1: ${info.thumbprint}; SHA-256: ${info.sha256}');
       _log('Срок действия: ${info.notBefore} - ${info.notAfter}');
       _log('Windows stores: CurrentUser=${info.currentUserInstalled}, LocalMachine=${info.localMachineInstalled}.');
     } catch (error) {
       _log('Ошибка проверки сертификата: ${_safeError(error)}');
-      if (mounted) setState(() {
-        if (isRoot) {
-          _rootCertificateStatus = 'Ошибка проверки';
-        } else {
-          _intermediateCertificateStatus = 'Ошибка проверки';
-        }
-      });
+      if (mounted) {
+        setState(() {
+          if (isRoot) {
+            _rootCertificateStatus = 'Ошибка проверки';
+          } else {
+            _intermediateCertificateStatus = 'Ошибка проверки';
+          }
+        });
+      }
     } finally {
       if (mounted) setState(() => _certificateBusy = false);
     }
@@ -447,13 +449,15 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
           : refreshed.localMachineInstalled
               ? 'Установлен: LocalMachine'
               : 'Проверен, не установлен';
-      if (mounted) setState(() {
-        if (isRoot) {
-          _rootCertificateStatus = status;
-        } else {
-          _intermediateCertificateStatus = status;
-        }
-      });
+      if (mounted) {
+        setState(() {
+          if (isRoot) {
+            _rootCertificateStatus = status;
+          } else {
+            _intermediateCertificateStatus = status;
+          }
+        });
+      }
     } catch (error) {
       _log('Установка сертификата не удалась: ${_safeError(error)}');
     } finally {
