@@ -55,6 +55,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
   bool _loginComplete = false;
   String _status = 'Не подключено';
   String? _profileSummary;
+  MaxAuthenticatedSession? _authenticatedSession;
   String? _error;
 
   @override
@@ -113,6 +114,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       _authenticated = false;
       _loginComplete = false;
       _profileSummary = null;
+      _authenticatedSession = null;
     });
 
     try {
@@ -297,16 +299,17 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     if (!mounted) return;
 
     final flags = result.login.login2Flags;
-    final profile = result.profile;
-    final profileText = profile == null
+    final authenticatedSession = MaxAuthenticatedSession.fromLogin(result);
+    final profileText = authenticatedSession.profile == null
         ? 'Профиль не передан в ответе LOGIN/LOGIN2.'
-        : _summarizeProfile(profile);
+        : _summarizeProfile(authenticatedSession.profile!);
 
     setState(() {
       _loginComplete = true;
       _busy = false;
       _status = 'Авторизация и LOGIN завершены';
       _profileSummary = profileText;
+      _authenticatedSession = authenticatedSession;
     });
 
     _log('LOGIN завершён. Чатов: ${result.login.chats.length}; контактов: ${result.contacts.length}; сообщений в начальном ответе: ${result.login.messages.length}.');
@@ -321,17 +324,15 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     _log('Проверка авторизации завершена. Токен не сохранён на диск.');
   }
 
-  String _summarizeProfile(Object profile) {
-    if (profile is Map) {
-      final name = profile['name'] ?? profile['firstName'] ?? profile['displayName'];
-      final id = profile['id'] ?? profile['userId'];
-      return <String>[
-        if (name != null) 'Имя: $name',
-        if (id != null) 'ID: $id',
-        'Поля ответа: ${profile.keys.length}',
-      ].join('\n');
-    }
-    return 'Тип данных профиля: ${profile.runtimeType}';
+  String _summarizeProfile(MaxUserProfile profile) {
+    final contact = profile.contact;
+    return <String>[
+      if (profile.displayName != null) 'Имя: ${profile.displayName}',
+      if (contact?.id != null) 'ID: ${contact!.id}',
+      if (contact?.country != null) 'Страна: ${contact!.country}',
+      'Имен: ${contact?.names.length ?? 0}',
+      'Опций профиля: ${profile.profileOptions.length}',
+    ].join('\n');
   }
 
   String _safeError(Object error) {
@@ -351,6 +352,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       _authenticated = false;
       _loginComplete = false;
       _qrRequest = null;
+      _authenticatedSession = null;
       _status = 'Остановлено';
     });
     _log('Соединение закрыто пользователем.');
