@@ -196,6 +196,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
   static final Uri _defaultUri = Uri.parse('wss://api.oneme.ru/websocket');
   static const String _tokenStorageKey = 'maxai.auth.token';
   static const String _deviceIdStorageKey = 'maxai.auth.device_id';
+  static const String _mtInstanceIdStorageKey = 'maxai.auth.mt_instance_id';
 
   final _uriController = TextEditingController(text: _defaultUri.toString());
   final _timezoneController = TextEditingController(text: 'Europe/Helsinki');
@@ -265,6 +266,60 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     return deviceId;
   }
 
+  Future<String> _loadOrCreateMtInstanceId() async {
+    final saved = await WindowsDpapiStorage.read(
+      key: _mtInstanceIdStorageKey,
+    );
+    if (saved != null && saved.isNotEmpty) return saved;
+
+    final random = Random.secure();
+    final value = List<String>.generate(
+      16,
+      (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
+    ).join();
+    await WindowsDpapiStorage.write(
+      key: _mtInstanceIdStorageKey,
+      value: value,
+    );
+    return value;
+  }
+
+  MaxUserAgent _createMobileUserAgent() {
+    final timezone = _timezoneController.text.trim();
+    if (timezone.isEmpty) {
+      throw ArgumentError('Укажи часовой пояс.');
+    }
+    return MaxUserAgent(
+      deviceType: DeviceType.android,
+      appVersion: '26.37.1',
+      osVersion: 'Android 14',
+      timezone: timezone,
+      screen: '420dpi 420dpi 1080x2400',
+      pushDeviceType: 'GCM',
+      arch: 'arm64-v8a',
+      locale: 'ru',
+      buildNumber: 6900,
+      deviceName: 'Google Pixel 8',
+      deviceLocale: 'ru',
+    );
+  }
+
+  FingerprintProvider _createMobileFingerprintProvider() {
+    return Sha256FingerprintProvider(
+      const ApkFingerprintConfig(
+        certificateMetaSha256:
+            '1684414033eb263e2c615f8b7df5ed8793850a07656304997fbf07e9e21e1e93',
+        dexMetaSha256:
+            'dfa98ab26b96aed92da79424d30b71d265a51d8df4d2278c1a53e78a877f647b',
+        soMetaSha256: <String, String>{
+          'arm64-v8a':
+              '09d48edd1d5de5ff00f8dab591b69a5f2bea41d74747a8bbede13a682d3a9aa7',
+        },
+        sourceVersion: '26.37.1',
+      ),
+    );
+  }
+
   MaxUserAgent _createWebUserAgent() {
     final timezone = _timezoneController.text.trim();
     if (timezone.isEmpty) {
@@ -299,25 +354,39 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     });
 
     try {
-      final uri = Uri.parse(_uriController.text.trim());
-      if (uri.scheme != 'wss' && uri.scheme != 'ws') {
-        throw const FormatException('Адрес должен начинаться с ws:// или wss://.');
+      final Uri? uri;
+      if (useSms) {
+        uri = null;
+      } else {
+        uri = Uri.parse(_uriController.text.trim());
+        if (uri.scheme != 'wss' && uri.scheme != 'ws') {
+          throw const FormatException(
+            'Адрес должен начинаться с ws:// или wss://.',
+          );
+        }
       }
 
       final deviceId = await _loadOrCreateDeviceId();
-      final userAgent = _createWebUserAgent();
+      final userAgent = useSms
+          ? _createMobileUserAgent()
+          : _createWebUserAgent();
+      final fingerprintProvider =
+          useSms ? _createMobileFingerprintProvider() : null;
       final frameCodec = const TcpFrameCodec(
         payloadCodec: MessagePackPayloadCodec(),
       );
+      final ProtocolTransport transport = useSms
+          ? TcpSocketTransport(host: 'api2.oneme.ru', port: 443)
+          : WebSocketTransport(
+              uri: uri!,
+              headers: <String, dynamic>{
+                'Origin': 'https://web.max.ru',
+                if (userAgent.headerUserAgent != null)
+                  'User-Agent': userAgent.headerUserAgent!,
+              },
+            );
       final connection = ProtocolConnection(
-        transport: WebSocketTransport(
-          uri: uri,
-          headers: <String, dynamic>{
-            'Origin': 'https://web.max.ru',
-            if (userAgent.headerUserAgent != null)
-              'User-Agent': userAgent.headerUserAgent!,
-          },
-        ),
+        transport: transport,
         codec: frameCodec,
         onFrame: (frame) {
           if (frame.opcode == AuthManager.getQrOpcode) {
@@ -354,29 +423,45 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       );
       _connection = connection;
 
-      _log('Открываем WebSocket: ${uri.host}');
+      _log(useSms
+          ? 'Открываем TCP/TLS: api2.oneme.ru:443'
+          : 'Открываем WebSocket: ${uri!.host}');
       await connection.connect();
       if (!mounted) return;
       setState(() {
         _connected = true;
-        _status = 'WebSocket подключён';
+        _status = useSms ? 'TCP/TLS подключён' : 'WebSocket подключён';
       });
-      _log('WebSocket соединение установлено.');
+      _log(useSms
+          ? 'TCP/TLS соединение установлено.'
+          : 'WebSocket соединение установлено.');
 
       final session = SessionManager(connection: connection);
       _sessionManager = session;
       _log('Отправляем SESSION_INIT (opcode 6).');
-      final handshake = await session.startWeb(
-        userAgent: userAgent,
-        deviceId: deviceId,
-      );
+      final HandshakeResponse handshake;
+      if (useSms) {
+        final mtInstanceId = await _loadOrCreateMtInstanceId();
+        handshake = await session.startMobile(
+          mtInstanceId: mtInstanceId,
+          userAgent: userAgent,
+          deviceId: deviceId,
+        );
+      } else {
+        handshake = await session.startWeb(
+          userAgent: userAgent,
+          deviceId: deviceId,
+        );
+      }
       _log('SESSION_INIT успешно завершён. callsSeed: ${handshake.callsSeed == null ? "не получен" : "получен"}.');
 
       final auth = AuthManager(
         connection: connection,
         sessionManager: session,
-        deviceType: DeviceType.web,
+        deviceType: useSms ? DeviceType.android : DeviceType.web,
         deviceId: deviceId,
+        fingerprintProvider: fingerprintProvider,
+        architecture: 'arm64-v8a',
         onLog: _log,
       );
 
@@ -520,9 +605,11 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     final login = LoginManager(
       connection: _connection!,
       sessionManager: _sessionManager!,
-      deviceType: DeviceType.web,
+      deviceType: DeviceType.android,
       userAgent: userAgent,
       deviceId: deviceId,
+      fingerprintProvider: _createMobileFingerprintProvider(),
+      architecture: 'arm64-v8a',
       onLog: _log,
     );
 
