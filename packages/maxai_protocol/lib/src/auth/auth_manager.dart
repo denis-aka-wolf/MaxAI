@@ -300,8 +300,8 @@ final class AuthManager {
         null => 'null',
         String text => 'String(length=${text.length})',
         Uint8List bytes => 'Uint8List(length=${bytes.length})',
-        List list => 'List(length=${list.length})',
-        Map map => 'Map(length=${map.length})',
+        List<Object?> list => 'List(length=${list.length})',
+        Map<Object?, Object?> map => 'Map(length=${map.length})',
         _ => value.runtimeType.toString(),
       };
       return '<REDACTED $details>';
