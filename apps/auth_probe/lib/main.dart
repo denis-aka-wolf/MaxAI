@@ -7,7 +7,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:maxai_protocol/maxai_protocol.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'services/windows_dpapi_storage.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,7 +40,6 @@ class AuthProbeScreen extends StatefulWidget {
 
 class _AuthProbeScreenState extends State<AuthProbeScreen> {
   static final Uri _defaultUri = Uri.parse('wss://api.oneme.ru/websocket');
-  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
   static const String _tokenStorageKey = 'maxai.auth.token';
   static const String _deviceIdStorageKey = 'maxai.auth.device_id';
 
@@ -70,7 +69,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
 
   Future<void> _restoreSessionOnStartup() async {
     try {
-      final token = await _secureStorage.read(key: _tokenStorageKey);
+      final token = await WindowsDpapiStorage.read(key: _tokenStorageKey);
       if (!mounted || token == null || token.isEmpty) return;
       _log('Найдена сохранённая авторизация. Пробуем восстановить сессию.');
       await _connectAndStartQr();
@@ -98,7 +97,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
   }
 
   Future<String> _loadOrCreateDeviceId() async {
-    final saved = await _secureStorage.read(key: _deviceIdStorageKey);
+    final saved = await WindowsDpapiStorage.read(key: _deviceIdStorageKey);
     if (saved != null && saved.isNotEmpty) return saved;
 
     final random = Random.secure();
@@ -106,7 +105,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       16,
       (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
     ).join();
-    await _secureStorage.write(key: _deviceIdStorageKey, value: deviceId);
+    await WindowsDpapiStorage.write(key: _deviceIdStorageKey, value: deviceId);
     return deviceId;
   }
 
@@ -225,7 +224,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
         onLog: _log,
       );
 
-      final savedToken = await _secureStorage.read(key: _tokenStorageKey);
+      final savedToken = await WindowsDpapiStorage.read(key: _tokenStorageKey);
       if (savedToken != null && savedToken.isNotEmpty) {
         _log('Сохранённый токен найден. Выполняем восстановительный LOGIN (opcode 19).');
         try {
@@ -238,7 +237,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
             onLog: _log,
           );
           final result = await login.login(token: savedToken);
-          await _secureStorage.write(
+          await WindowsDpapiStorage.write(
             key: _tokenStorageKey,
             value: result.effectiveToken,
           );
@@ -246,7 +245,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
           return;
         } on LoginProtocolException catch (error) {
           if (error.opcode != LoginManager.loginOpcode) rethrow;
-          await _secureStorage.delete(key: _tokenStorageKey);
+          await WindowsDpapiStorage.delete(key: _tokenStorageKey);
           _log('Сервер отклонил сохранённый токен. Он удалён, потребуется новая QR-авторизация.');
         }
       }
@@ -348,11 +347,11 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
 
     _log('Отправляем LOGIN (opcode 19).');
     final result = await login.login(token: authResult.token!);
-    await _secureStorage.write(
+    await WindowsDpapiStorage.write(
       key: _tokenStorageKey,
       value: result.effectiveToken,
     );
-    _log('Токен авторизации и постоянный идентификатор устройства сохранены в защищённом хранилище Windows.');
+    _log('Токен авторизации и постоянный идентификатор устройства сохранены в зашифрованном хранилище Windows DPAPI.');
     _applyLoginResult(result);
   }
 
@@ -571,7 +570,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                       if (_authenticatedSession != null) ...[
                         const SizedBox(height: 8),
                         const Text(
-                          'Токен авторизации сохранён в защищённом хранилище Windows '
+                          'Токен авторизации сохранён в зашифрованном хранилище Windows DPAPI '
                           'и будет использован при следующем запуске.',
                         ),
                       ],
