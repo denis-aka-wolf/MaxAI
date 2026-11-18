@@ -475,7 +475,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     try {
       _log(usePinnedRoot
           ? 'TLS-проверка api2.oneme.ru:443 через TLS-контекст MaxAI с закреплённым корневым сертификатом.'
-          : 'TLS-проверка api2.oneme.ru:443 через стандартный TLS-контекст Windows/Dart без дополнительных сертификатов.');
+          : 'TLS-проверка api2.oneme.ru:443 через стандартный TLS-контекст Dart без дополнительных сертификатов.');
       final tlsContext = usePinnedRoot
           ? await _certificateManager.createTlsContext()
           : null;
@@ -1191,7 +1191,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                         const SizedBox(height: 8),
                         _certificateStatusRow('Russian Trusted Root CA', _rootCertificateStatus),
                         _certificateStatusRow('Russian Trusted Sub CA 2024', _intermediateCertificateStatus),
-                        _certificateStatusRow('TLS Windows / Dart', _windowsTlsStatus),
+                        _certificateStatusRow('TLS стандартный контекст', _windowsTlsStatus),
                         _certificateStatusRow('TLS MaxAI / pinned Root', _maxAiTlsStatus),
                         const SizedBox(height: 10),
                         Wrap(
@@ -1223,7 +1223,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                                   ? null
                                   : () => _checkApiTls(usePinnedRoot: false),
                               icon: const Icon(Icons.shield_outlined),
-                              label: const Text('TLS: Windows'),
+                              label: const Text('TLS: Default'),
                             ),
                             OutlinedButton.icon(
                               onPressed: _busy || _certificateBusy
