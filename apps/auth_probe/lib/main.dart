@@ -197,6 +197,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
   static const String _tokenStorageKey = 'maxai.auth.token';
   static const String _deviceIdStorageKey = 'maxai.auth.device_id';
   static const String _mtInstanceIdStorageKey = 'maxai.auth.mt_instance_id';
+  static const String _authMethodStorageKey = 'maxai.auth.method';
 
   final _uriController = TextEditingController(text: _defaultUri.toString());
   final _timezoneController = TextEditingController(text: 'Europe/Helsinki');
@@ -227,8 +228,11 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     try {
       final token = await WindowsDpapiStorage.read(key: _tokenStorageKey);
       if (!mounted || token == null || token.isEmpty) return;
+      final method = await WindowsDpapiStorage.read(
+        key: _authMethodStorageKey,
+      );
       _log('Найдена сохранённая авторизация. Пробуем восстановить сессию.');
-      await _connectAndStartQr();
+      await _connectAndStartQr(useSms: method == 'mobile');
     } catch (error) {
       _log('Не удалось прочитать сохранённую авторизацию: ${_safeError(error)}');
     }
@@ -465,12 +469,49 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
         onLog: _log,
       );
 
+      final savedToken = await WindowsDpapiStorage.read(key: _tokenStorageKey);
       if (useSms) {
-        await _runSmsAuthentication(auth, userAgent, deviceId);
+        if (savedToken != null && savedToken.isNotEmpty) {
+          _log('Сохранённый мобильный токен найден. Выполняем LOGIN через TCP (opcode 19).');
+          try {
+            final login = LoginManager(
+              connection: connection,
+              sessionManager: session,
+              deviceType: DeviceType.android,
+              userAgent: userAgent,
+              deviceId: deviceId,
+              fingerprintProvider: fingerprintProvider,
+              architecture: 'arm64-v8a',
+              onLog: _log,
+            );
+            final result = await login.login(token: savedToken);
+            await WindowsDpapiStorage.write(
+              key: _tokenStorageKey,
+              value: result.effectiveToken,
+            );
+            await WindowsDpapiStorage.write(
+              key: _authMethodStorageKey,
+              value: 'mobile',
+            );
+            _applyLoginResult(result);
+          } on LoginProtocolException catch (error) {
+            if (error.opcode != LoginManager.loginOpcode) rethrow;
+            await WindowsDpapiStorage.delete(key: _tokenStorageKey);
+      await WindowsDpapiStorage.delete(key: _authMethodStorageKey);
+            await WindowsDpapiStorage.delete(
+              key: _authMethodStorageKey,
+            );
+            throw StateError(
+              'MAX отклонил сохранённый мобильный токен. '
+              'Для повторного входа по SMS укажи номер телефона.',
+            );
+          }
+        } else {
+          await _runSmsAuthentication(auth, userAgent, deviceId);
+        }
         return;
       }
 
-      final savedToken = await WindowsDpapiStorage.read(key: _tokenStorageKey);
       if (savedToken != null && savedToken.isNotEmpty) {
         _log('Сохранённый токен найден. Выполняем восстановительный LOGIN (opcode 19).');
         try {
@@ -526,7 +567,9 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       });
       return;
     }
-    if (_phoneController.text.trim().isEmpty) {
+    final savedToken = await WindowsDpapiStorage.read(key: _tokenStorageKey);
+    if ((savedToken == null || savedToken.isEmpty) &&
+        _phoneController.text.trim().isEmpty) {
       setState(() {
         _error = 'Укажи номер телефона в международном формате.';
       });
@@ -619,7 +662,11 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       key: _tokenStorageKey,
       value: result.effectiveToken,
     );
-    _log('Токен авторизации сохранён в зашифрованном хранилище Windows DPAPI.');
+    await WindowsDpapiStorage.write(
+      key: _authMethodStorageKey,
+      value: 'mobile',
+    );
+    _log('Мобильный токен авторизации сохранён в зашифрованном хранилище Windows DPAPI.');
     _applyLoginResult(result);
   }
 
@@ -748,7 +795,11 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       key: _tokenStorageKey,
       value: result.effectiveToken,
     );
-    _log('Токен авторизации и постоянный идентификатор устройства сохранены в зашифрованном хранилище Windows DPAPI.');
+    await WindowsDpapiStorage.write(
+      key: _authMethodStorageKey,
+      value: 'web',
+    );
+    _log('Web-токен авторизации сохранён в зашифрованном хранилище Windows DPAPI.');
     _applyLoginResult(result);
   }
 
