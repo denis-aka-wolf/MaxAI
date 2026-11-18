@@ -228,6 +228,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
   bool _certificateBusy = false;
   bool _apiBusy = false;
   List<Map<String, Object?>> _lastApiChats = <Map<String, Object?>>[];
+  List<Map<String, Object?>> _lastApiContacts = <Map<String, Object?>>[];
 
   final WindowsCertificateManager _certificateManager =
       WindowsCertificateManager();
@@ -1082,6 +1083,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     final session = _authenticatedSession;
     if (session == null) throw StateError('Нет данных LOGIN.');
     final contacts = _createReadOnlyApi().contactsFromLogin(session.login);
+    if (mounted) setState(() => _lastApiContacts = contacts);
     return 'Контактов в snapshot LOGIN/LOGIN2: ${contacts.length}.';
   }
 
@@ -1218,6 +1220,16 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
   @override
   Widget build(BuildContext context) {
     final qr = _qrRequest;
+    final apiContactIds = _lastApiContacts
+        .map((contact) => contact['id'])
+        .whereType<int>()
+        .toSet()
+        .toList(growable: false);
+    final apiChatIds = _lastApiChats
+        .map((chat) => chat['id'])
+        .whereType<int>()
+        .toSet()
+        .toList(growable: false);
     return Scaffold(
       appBar: AppBar(
         title: const Text('MAX Auth Probe'),
@@ -1350,12 +1362,12 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                                         runSpacing: 8,
                                         children: [
                                           FilledButton.icon(
-                                            onPressed: _busy ? null : _connectAndStartQr,
+                                            onPressed: _busy || _apiBusy ? null : _connectAndStartQr,
                                             icon: const Icon(Icons.qr_code),
                                             label: const Text('Подключиться / восстановить авторизацию'),
                                           ),
                                           OutlinedButton.icon(
-                                            onPressed: _busy || _loginComplete
+                                            onPressed: _busy || _apiBusy || _loginComplete
                                                 ? null
                                                 : _connectAndStartSms,
                                             icon: const Icon(Icons.sms_outlined),
@@ -1368,7 +1380,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                                           ),
                                           if (_loginComplete)
                                             OutlinedButton.icon(
-                                              onPressed: _busy ? null : _logout,
+                                              onPressed: _busy || _apiBusy ? null : _logout,
                                               icon: const Icon(Icons.logout),
                                               label: const Text('Выйти из аккаунта'),
                                             ),
@@ -1405,6 +1417,25 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                                             border: OutlineInputBorder(),
                                           ),
                                         ),
+                                        if (apiContactIds.isNotEmpty) ...[
+                                          const SizedBox(height: 8),
+                                          DropdownButtonFormField<int>(
+                                            value: apiContactIds.contains(int.tryParse(_apiContactIdController.text))
+                                                ? int.tryParse(_apiContactIdController.text)
+                                                : null,
+                                            decoration: const InputDecoration(
+                                              labelText: 'Контакт из LOGIN snapshot',
+                                              border: OutlineInputBorder(),
+                                            ),
+                                            items: apiContactIds.map((id) => DropdownMenuItem<int>(
+                                              value: id,
+                                              child: Text('Contact $id'),
+                                            )).toList(),
+                                            onChanged: _apiBusy ? null : (id) {
+                                              if (id != null) setState(() => _apiContactIdController.text = id.toString());
+                                            },
+                                          ),
+                                        ],
                                         const SizedBox(height: 8),
                                         TextField(
                                           controller: _apiChatIdController,
@@ -1415,6 +1446,25 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                                             border: OutlineInputBorder(),
                                           ),
                                         ),
+                                        if (apiChatIds.isNotEmpty) ...[
+                                          const SizedBox(height: 8),
+                                          DropdownButtonFormField<int>(
+                                            value: apiChatIds.contains(int.tryParse(_apiChatIdController.text))
+                                                ? int.tryParse(_apiChatIdController.text)
+                                                : null,
+                                            decoration: const InputDecoration(
+                                              labelText: 'Чат из последнего списка',
+                                              border: OutlineInputBorder(),
+                                            ),
+                                            items: apiChatIds.map((id) => DropdownMenuItem<int>(
+                                              value: id,
+                                              child: Text('Chat $id'),
+                                            )).toList(),
+                                            onChanged: _apiBusy ? null : (id) {
+                                              if (id != null) setState(() => _apiChatIdController.text = id.toString());
+                                            },
+                                          ),
+                                        ],
                                         const SizedBox(height: 10),
                                         Wrap(
                                           spacing: 8,
