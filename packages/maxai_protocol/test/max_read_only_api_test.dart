@@ -28,7 +28,9 @@ final class _FakeTransport implements ProtocolTransport {
   Stream<dynamic> get stream => controller.stream;
 
   @override
-  Future<void> connect() async => connected = true;
+  Future<void> connect() async {
+    connected = true;
+  }
 
   @override
   Future<void> send(Uint8List bytes) async {
