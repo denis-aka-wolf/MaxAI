@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:math';
 
 // Flutter SDK marks the Material library deprecated in newer prerelease builds.
@@ -76,18 +75,6 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     });
   }
 
-  String _formatHex(List<int> bytes) {
-    const maxBytes = 16384;
-    final visible = bytes.take(maxBytes);
-    final hex = visible
-        .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
-        .join(' ');
-    if (bytes.length > maxBytes) {
-      return '$hex ... <truncated: total ${bytes.length} bytes>';
-    }
-    return hex;
-  }
-
   String _newDeviceId() {
     final random = Random.secure();
     return List<String>.generate(
@@ -161,16 +148,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
               'decompressedPayloadLength=${decodedBytes.length}.',
             );
             _log(
-              'GET_QR RAW FRAME PAYLOAD HEX: '
-              '${_formatHex(rawBytes)}',
-            );
-            _log(
-              'GET_QR DECOMPRESSED MESSAGEPACK HEX: '
-              '${_formatHex(decodedBytes)}',
-            );
-            _log(
-              'GET_QR DECOMPRESSED UTF8 PREVIEW: '
-              '${utf8.decode(decodedBytes, allowMalformed: true)}',
+              'GET_QR payload bytes captured for diagnostics only; '
+              'raw content omitted to protect QR URL and trackId.',
             );
           }
           final payload = frame.payload;
