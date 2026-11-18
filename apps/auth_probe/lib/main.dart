@@ -1395,8 +1395,6 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                                   ),
                           ),
                         ),
-                      ],
-                    ),
           ],
         ),
       ),
