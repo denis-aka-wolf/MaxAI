@@ -7,6 +7,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:maxai_protocol/maxai_protocol.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,6 +40,9 @@ class AuthProbeScreen extends StatefulWidget {
 
 class _AuthProbeScreenState extends State<AuthProbeScreen> {
   static final Uri _defaultUri = Uri.parse('wss://api.oneme.ru/websocket');
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
+  static const String _tokenStorageKey = 'maxai.auth.token';
+  static const String _deviceIdStorageKey = 'maxai.auth.device_id';
 
   final _uriController = TextEditingController(text: _defaultUri.toString());
   final _timezoneController = TextEditingController(text: 'Europe/Helsinki');
@@ -59,6 +63,23 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
   String? _error;
 
   @override
+  void initState() {
+    super.initState();
+    _restoreSessionOnStartup();
+  }
+
+  Future<void> _restoreSessionOnStartup() async {
+    try {
+      final token = await _secureStorage.read(key: _tokenStorageKey);
+      if (!mounted || token == null || token.isEmpty) return;
+      _log('Найдена сохранённая авторизация. Пробуем восстановить сессию.');
+      await _connectAndStartQr();
+    } catch (error) {
+      _log('Не удалось прочитать сохранённую авторизацию: ${_safeError(error)}');
+    }
+  }
+
+  @override
   void dispose() {
     _pollTimer?.cancel();
     _closeConnection();
@@ -76,12 +97,17 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     });
   }
 
-  String _newDeviceId() {
+  Future<String> _loadOrCreateDeviceId() async {
+    final saved = await _secureStorage.read(key: _deviceIdStorageKey);
+    if (saved != null && saved.isNotEmpty) return saved;
+
     final random = Random.secure();
-    return List<String>.generate(
+    final deviceId = List<String>.generate(
       16,
       (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
     ).join();
+    await _secureStorage.write(key: _deviceIdStorageKey, value: deviceId);
+    return deviceId;
   }
 
   MaxUserAgent _createWebUserAgent() {
@@ -123,7 +149,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
         throw const FormatException('Адрес должен начинаться с ws:// или wss://.');
       }
 
-      final deviceId = _newDeviceId();
+      final deviceId = await _loadOrCreateDeviceId();
       final userAgent = _createWebUserAgent();
       final frameCodec = const TcpFrameCodec(
         payloadCodec: MessagePackPayloadCodec(),
@@ -198,6 +224,32 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
         deviceId: deviceId,
         onLog: _log,
       );
+
+      final savedToken = await _secureStorage.read(key: _tokenStorageKey);
+      if (savedToken != null && savedToken.isNotEmpty) {
+        _log('Сохранённый токен найден. Выполняем восстановительный LOGIN (opcode 19).');
+        try {
+          final login = LoginManager(
+            connection: connection,
+            sessionManager: session,
+            deviceType: DeviceType.web,
+            userAgent: userAgent,
+            deviceId: deviceId,
+            onLog: _log,
+          );
+          final result = await login.login(token: savedToken);
+          await _secureStorage.write(
+            key: _tokenStorageKey,
+            value: result.effectiveToken,
+          );
+          _applyLoginResult(result);
+          return;
+        } on LoginProtocolException catch (error) {
+          if (error.opcode != LoginManager.loginOpcode) rethrow;
+          await _secureStorage.delete(key: _tokenStorageKey);
+          _log('Сервер отклонил сохранённый токен. Он удалён, потребуется новая QR-авторизация.');
+        }
+      }
 
       _log('Запрашиваем QR-код (opcode 288).');
       final qr = await auth.requestQrLogin();
@@ -296,6 +348,15 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
 
     _log('Отправляем LOGIN (opcode 19).');
     final result = await login.login(token: authResult.token!);
+    await _secureStorage.write(
+      key: _tokenStorageKey,
+      value: result.effectiveToken,
+    );
+    _log('Токен авторизации и постоянный идентификатор устройства сохранены в защищённом хранилище Windows.');
+    _applyLoginResult(result);
+  }
+
+  void _applyLoginResult(LoginBootstrapResult result) {
     if (!mounted) return;
 
     final flags = result.login.login2Flags;
@@ -321,7 +382,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     if (result.login2 != null) {
       _log('LOGIN2 завершён успешно.');
     }
-    _log('Проверка авторизации завершена. Токен не сохранён на диск.');
+    _log('Восстановление/проверка авторизации завершены. Токен хранится в защищённом хранилище.');
   }
 
   String _summarizeProfile(MaxUserProfile profile) {
@@ -436,7 +497,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                         FilledButton.icon(
                           onPressed: _busy ? null : _connectAndStartQr,
                           icon: const Icon(Icons.qr_code),
-                          label: const Text('Подключиться и получить QR'),
+                          label: const Text('Подключиться / восстановить авторизацию'),
                         ),
                         OutlinedButton.icon(
                           onPressed: _connected || _busy ? _stop : null,
@@ -510,8 +571,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                       if (_authenticatedSession != null) ...[
                         const SizedBox(height: 8),
                         const Text(
-                          'Токен авторизации хранится только в памяти процесса '
-                          'и не записывается на диск.',
+                          'Токен авторизации сохранён в защищённом хранилище Windows '
+                          'и будет использован при следующем запуске.',
                         ),
                       ],
                     ],
