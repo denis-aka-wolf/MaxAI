@@ -42,7 +42,9 @@ void main() {
     });
 
     test('accepts absent optional profile fields', () {
-      final profile = MaxUserProfile.fromPayload({'contact': {}});
+      final profile = MaxUserProfile.fromPayload(<String, Object?>{
+        'contact': <String, Object?>{},
+      });
       expect(profile.displayName, isNull);
       expect(profile.contact?.names, isEmpty);
       expect(profile.profileOptions, isEmpty);
