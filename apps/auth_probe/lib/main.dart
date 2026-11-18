@@ -509,6 +509,45 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     _log('Соединение закрыто пользователем.');
   }
 
+  Future<void> _logout() async {
+    if (_busy && !_loginComplete) return;
+
+    setState(() {
+      _busy = true;
+      _status = 'Выход из аккаунта';
+      _error = null;
+    });
+
+    _pollTimer?.cancel();
+    _pollTimer = null;
+
+    try {
+      await _closeConnection();
+      await WindowsDpapiStorage.delete(key: _tokenStorageKey);
+
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _connected = false;
+        _authenticated = false;
+        _loginComplete = false;
+        _qrRequest = null;
+        _authenticatedSession = null;
+        _profileSummary = null;
+        _status = 'Выполнен выход';
+      });
+      _log('Выход выполнен. Сохранённый токен удалён; идентификатор устройства сохранён.');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _error = _safeError(error);
+        _status = 'Ошибка выхода';
+      });
+      _log('Не удалось завершить выход: ${_safeError(error)}');
+    }
+  }
+
   Future<void> _closeConnection() async {
     final connection = _connection;
     _connection = null;
@@ -594,6 +633,12 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                           icon: const Icon(Icons.stop),
                           label: const Text('Остановить'),
                         ),
+                        if (_loginComplete)
+                          OutlinedButton.icon(
+                            onPressed: _busy ? null : _logout,
+                            icon: const Icon(Icons.logout),
+                            label: const Text('Выйти из аккаунта'),
+                          ),
                       ],
                     ),
                   ],
