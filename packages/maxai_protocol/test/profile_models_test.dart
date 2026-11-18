@@ -4,8 +4,8 @@ import 'package:test/test.dart';
 void main() {
   group('MaxUserProfile', () {
     test('parses nested contact and preferred ONEME display name', () {
-      final profile = MaxUserProfile.fromPayload({
-        'contact': {
+      final profile = MaxUserProfile.fromPayload(<String, Object?>{
+        'contact': <String, Object?>{
           'id': 123,
           'updateTime': 1700000000000,
           'registrationTime': 1690000000000,
