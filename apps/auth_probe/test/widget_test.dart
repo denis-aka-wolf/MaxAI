@@ -7,7 +7,11 @@ void main() {
 
     expect(find.text('MAX Auth Probe'), findsOneWidget);
     expect(find.text('Подключение WebSocket + QR'), findsOneWidget);
-    expect(find.text('Подключиться и получить QR'), findsOneWidget);
+    expect(
+      find.text('Подключиться / восстановить авторизацию'),
+      findsOneWidget,
+    );
+    expect(find.text('Войти по SMS'), findsOneWidget);
     expect(find.text('Журнал проверки'), findsOneWidget);
   });
 }
