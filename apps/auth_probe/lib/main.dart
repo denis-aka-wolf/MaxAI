@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:io';
 
 // Flutter SDK marks the Material library deprecated in newer prerelease builds.
 // Keep the stable Flutter Material API until its replacement is available in stable.
@@ -8,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:maxai_protocol/maxai_protocol.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'services/windows_dpapi_storage.dart';
+import 'services/windows_certificate_manager.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -217,7 +219,11 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
   String? _profileSummary;
   MaxAuthenticatedSession? _authenticatedSession;
   String? _error;
+  String _certificateStatus = 'Не проверено';
+  bool _certificateBusy = false;
 
+  final WindowsCertificateManager _certificateManager =
+      WindowsCertificateManager();
   @override
   void initState() {
     super.initState();
@@ -344,6 +350,71 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     );
   }
 
+  Future<SecurityContext> _prepareWindowsTlsContext() async {
+    final result = await _certificateManager.prepare(
+      confirmInstall: () async {
+        if (!mounted) return false;
+        return await showDialog<bool>(
+              context: context,
+              barrierDismissible: false,
+              builder: (dialogContext) => AlertDialog(
+                title: const Text('Установка корневого сертификата'),
+                content: const SelectableText(
+                  'MaxAI загрузил сертификат Russian Trusted Root CA '
+                  'с официального сайта Минцифры и проверил его SHA-1 отпечаток:\n\n'
+                  '8FF915CCAB7BC16F8C5C8099D53E0E115B3AEC2F\n\n'
+                  'Разрешить установить его в хранилище доверенных корневых '
+                  'центров текущего пользователя Windows? Это изменит доверие '
+                  'Windows и других приложений текущего пользователя. '
+                  'Администраторские права не требуются.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(false),
+                    child: const Text('Не устанавливать'),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(true),
+                    child: const Text('Установить'),
+                  ),
+                ],
+              ),
+            ) ??
+            false;
+      },
+    );
+
+    if (mounted) {
+      setState(() {
+        _certificateStatus = result.installedInWindowsStore
+            ? 'Корневой сертификат установлен'
+            : 'TLS доверие настроено для MaxAI';
+      });
+    }
+    _log(result.installedInWindowsStore
+        ? 'Russian Trusted Root CA проверен и установлен в CurrentUser\\Root.'
+        : 'Russian Trusted Root CA проверен. Он добавлен в TLS-контекст MaxAI; системное хранилище не изменялось.');
+    return result.securityContext;
+  }
+
+  Future<void> _checkWindowsCertificates() async {
+    if (_certificateBusy || _busy) return;
+    setState(() => _certificateBusy = true);
+    try {
+      await _prepareWindowsTlsContext();
+    } catch (error) {
+      _log('Проверка сертификатов не удалась: ${_safeError(error)}');
+      if (mounted) {
+        setState(() {
+          _certificateStatus = 'Ошибка проверки';
+          _error = _safeError(error);
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _certificateBusy = false);
+    }
+  }
+
   Future<void> _connectAndStartQr({bool useSms = false}) async {
     if (_busy) return;
     setState(() {
@@ -379,8 +450,14 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       final frameCodec = const TcpFrameCodec(
         payloadCodec: MessagePackPayloadCodec(),
       );
+      final SecurityContext? tlsContext =
+          useSms && Platform.isWindows ? await _prepareWindowsTlsContext() : null;
       final ProtocolTransport transport = useSms
-          ? TcpSocketTransport(host: 'api2.oneme.ru', port: 443)
+          ? TcpSocketTransport(
+              host: 'api2.oneme.ru',
+              port: 443,
+              securityContext: tlsContext,
+            )
           : WebSocketTransport(
               uri: uri!,
               headers: <String, dynamic>{
@@ -458,7 +535,6 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
         );
       }
       _log('SESSION_INIT успешно завершён. callsSeed: ${handshake.callsSeed == null ? "не получен" : "получен"}.');
-
       final auth = AuthManager(
         connection: connection,
         sessionManager: session,
@@ -697,8 +773,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
             _log('Срок действия QR-кода истёк.');
             setState(() {
               _status = 'QR-код истёк';
-              _busy = false;
-            });
+              _busy = false;            });
             return;
           }
 
@@ -897,8 +972,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
         _status = 'Выполнен выход';
       });
       _log('Выход выполнен. Сохранённый токен удалён; идентификатор устройства сохранён.');
-    } catch (error) {
-      if (!mounted) return;
+    } catch (error) {      if (!mounted) return;
       setState(() {
         _busy = false;
         _error = _safeError(error);
@@ -988,6 +1062,40 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                         hintText: '+358...',
                         border: OutlineInputBorder(),
                       ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Диагностика сертификатов Windows',
+                                style: Theme.of(context).textTheme.titleSmall,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _certificateStatus,
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: _busy || _certificateBusy
+                              ? null
+                              : _checkWindowsCertificates,
+                          icon: _certificateBusy
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.verified_user_outlined),
+                          label: const Text('Проверить'),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 14),
                     Wrap(
