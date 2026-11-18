@@ -1009,6 +1009,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       _status = 'Авторизация и LOGIN завершены';
       _profileSummary = profileText;
       _authenticatedSession = authenticatedSession;
+      _lastApiChats = <Map<String, Object?>>[];
+      _lastApiContacts = <Map<String, Object?>>[];
     });
 
     _log('LOGIN завершён. Чатов: ${result.login.chats.length}; контактов: ${result.contacts.length}; сообщений в начальном ответе: ${result.login.messages.length}.');
