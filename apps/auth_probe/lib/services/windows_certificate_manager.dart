@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 
 enum WindowsCertificateKind { root, intermediate }
@@ -37,7 +38,7 @@ final class WindowsCertificateManager {
   // The 2024 intermediate is the one presented by api2.oneme.ru.
   // The older generic *_sub_ca_pem.crt endpoint serves a different 2022 CA.
   static const String intermediateCertificateUrl =
-      'https://gu-st.ru/content/lending/russian_trusted_sub_ca_2024_pem.crt';
+      'https://gu-st.ru/content/lending/russian_trusted_sub_ca_pem.zip';
 
   static const String rootThumbprint =
       '8FF915CCAB7BC16F8C5C8099D53E0E115B3AEC2F';
@@ -198,20 +199,37 @@ final class WindowsCertificateManager {
       final response = await request.close();
       if (response.statusCode != HttpStatus.ok) {
         throw HttpException(
-          'Сервер сертификатов вернул HTTP ${response.statusCode}.',
+          'Официальный сервер сертификатов вернул HTTP ${response.statusCode}.',
           uri: uri,
         );
       }
-      final bytes = await response.fold<List<int>>(
+      final downloaded = await response.fold<List<int>>(
         <int>[],
         (buffer, chunk) => buffer..addAll(chunk),
       );
-      if (!_isExpectedCertificate(bytes, kind)) {
+
+      List<int> certificateBytes;
+      if (kind == WindowsCertificateKind.root) {
+        certificateBytes = downloaded;
+      } else {
+        final archive = ZipDecoder().decodeBytes(downloaded);
+        final matches = archive.files.where((entry) =>
+            entry.isFile &&
+            entry.name.split('/').last == 'russian_trusted_sub_ca_2024_pem.crt');
+        if (matches.length != 1) {
+          throw const FormatException(
+            'В официальном архиве не найден единственный сертификат Sub CA 2024.',
+          );
+        }
+        certificateBytes = matches.single.content as List<int>;
+      }
+
+      if (!_isExpectedCertificate(certificateBytes, kind)) {
         throw const FormatException(
           'Загруженный сертификат не совпадает с закреплённым SHA-256.',
         );
       }
-      await destination.writeAsBytes(bytes, flush: true);
+      await destination.writeAsBytes(certificateBytes, flush: true);
     } finally {
       client.close(force: true);
     }
