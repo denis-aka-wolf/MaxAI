@@ -47,7 +47,7 @@ void main() {
     ];
 
     final decoded = codec.decode(Uint8List.fromList(bytes));
-    expect(decoded, isA<Map>());
+    expect(decoded, isA<Map<Object?, Object?>>());
     final map = decoded as Map<Object?, Object?>;
     expect(map['expiresAt'], 1794928419067);
     expect(map['pollingInterval'], 5000);
