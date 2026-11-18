@@ -13,6 +13,7 @@ dependencies:
     path: ../../packages/maxai_protocol
   qr_flutter: ^4.1.0
   ffi: ^2.1.4
+  crypto: ^3.0.6
 
 dev_dependencies:
   flutter_test:
