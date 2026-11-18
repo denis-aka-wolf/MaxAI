@@ -221,7 +221,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
   String? _error;
   String _rootCertificateStatus = 'Не проверен';
   String _intermediateCertificateStatus = 'Не проверен';
-  String _tlsCertificateStatus = 'Не проверено';
+  String _windowsTlsStatus = 'Не проверено';
+  String _maxAiTlsStatus = 'Не проверено';
   bool _certificateBusy = false;
 
   final WindowsCertificateManager _certificateManager =
@@ -460,16 +461,24 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     }
   }
 
-  Future<void> _checkApiTls() async {
+  Future<void> _checkApiTls({required bool usePinnedRoot}) async {
     if (_certificateBusy || _busy) return;
     setState(() {
       _certificateBusy = true;
-      _tlsCertificateStatus = 'Проверяется...';
+      if (usePinnedRoot) {
+        _maxAiTlsStatus = 'Проверяется...';
+      } else {
+        _windowsTlsStatus = 'Проверяется...';
+      }
     });
     SecureSocket? socket;
     try {
-      _log('TLS handshake api2.oneme.ru:443 со штатной проверкой цепочки и имени узла.');
-      final tlsContext = await _certificateManager.createTlsContext();
+      _log(usePinnedRoot
+          ? 'TLS-проверка api2.oneme.ru:443 через TLS-контекст MaxAI с закреплённым корневым сертификатом.'
+          : 'TLS-проверка api2.oneme.ru:443 через стандартный TLS-контекст Windows/Dart без дополнительных сертификатов.');
+      final tlsContext = usePinnedRoot
+          ? await _certificateManager.createTlsContext()
+          : null;
       socket = await SecureSocket.connect(
         'api2.oneme.ru',
         443,
@@ -483,10 +492,26 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
         _log('Issuer: ${peer.issuer}');
         _log('Срок действия leaf: ${peer.startValidity} - ${peer.endValidity}');
       }
-      if (mounted) setState(() => _tlsCertificateStatus = 'TLS успешно проверен');
+      if (mounted) {
+        setState(() {
+          if (usePinnedRoot) {
+            _maxAiTlsStatus = 'Успешно';
+          } else {
+            _windowsTlsStatus = 'Успешно';
+          }
+        });
+      }
     } catch (error) {
-      _log('TLS-проверка api2.oneme.ru не пройдена: ${_safeError(error)}');
-      if (mounted) setState(() => _tlsCertificateStatus = 'Ошибка TLS');
+      _log('TLS-проверка ${usePinnedRoot ? 'MaxAI' : 'Windows'} не пройдена: ${_safeError(error)}');
+      if (mounted) {
+        setState(() {
+          if (usePinnedRoot) {
+            _maxAiTlsStatus = 'Ошибка TLS';
+          } else {
+            _windowsTlsStatus = 'Ошибка TLS';
+          }
+        });
+      }
     } finally {
       socket?.destroy();
       if (mounted) setState(() => _certificateBusy = false);
@@ -1166,7 +1191,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                         const SizedBox(height: 8),
                         _certificateStatusRow('Russian Trusted Root CA', _rootCertificateStatus),
                         _certificateStatusRow('Russian Trusted Sub CA 2024', _intermediateCertificateStatus),
-                        _certificateStatusRow('TLS api2.oneme.ru:443', _tlsCertificateStatus),
+                        _certificateStatusRow('TLS Windows / Dart', _windowsTlsStatus),
+                        _certificateStatusRow('TLS MaxAI / pinned Root', _maxAiTlsStatus),
                         const SizedBox(height: 10),
                         Wrap(
                           spacing: 8,
@@ -1193,11 +1219,20 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                               label: const Text('Установить Sub CA'),
                             ),
                             OutlinedButton.icon(
-                              onPressed: _busy || _certificateBusy ? null : _checkApiTls,
+                              onPressed: _busy || _certificateBusy
+                                  ? null
+                                  : () => _checkApiTls(usePinnedRoot: false),
+                              icon: const Icon(Icons.shield_outlined),
+                              label: const Text('TLS: Windows'),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: _busy || _certificateBusy
+                                  ? null
+                                  : () => _checkApiTls(usePinnedRoot: true),
                               icon: _certificateBusy
                                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                                  : const Icon(Icons.shield_outlined),
-                              label: const Text('Проверить TLS MAX'),
+                                  : const Icon(Icons.verified_user_outlined),
+                              label: const Text('TLS: MaxAI'),
                             ),
                           ],
                         ),
