@@ -13,9 +13,8 @@ final class WindowsCertificateManager {
       'https://gu-st.ru/content/lending/russian_trusted_root_ca_pem.crt';
   static const String rootThumbprint =
       '8FF915CCAB7BC16F8C5C8099D53E0E115B3AEC2F';
-  static const String rootSubject = 'Russian Trusted Root CA';
-  static final DateTime _notBefore = DateTime.utc(2022, 3, 2);
-  static final DateTime _notAfter = DateTime.utc(2032, 2, 28, 0, 4, 15);
+  static const String rootSha256 =
+      'D26D2D0231B7C39F92CC738512BA54103519E4405D68B5BD703E9788CA8ECF31';
 
   Future<WindowsCertificateSetupResult> prepare({
     required Future<bool> Function() confirmInstall,
@@ -87,13 +86,6 @@ final class WindowsCertificateManager {
       );
     }
 
-    final now = DateTime.now().toUtc();
-    if (now.isBefore(_notBefore) || now.isAfter(_notAfter)) {
-      throw StateError(
-        'Russian Trusted Root CA находится вне известного срока действия. '
-        'Требуется обновление закреплённых параметров сертификата MaxAI.',
-      );
-    }
     return bytes;
   }
 
@@ -137,7 +129,9 @@ final class WindowsCertificateManager {
       final base64Body = match.group(1)!.replaceAll(RegExp(r'\s'), '');
       final der = base64.decode(base64Body);
       final thumbprint = sha1.convert(der).toString().toUpperCase();
-      return thumbprint == rootThumbprint;
+      final sha256Fingerprint = sha256.convert(der).toString().toUpperCase();
+      return thumbprint == rootThumbprint &&
+          sha256Fingerprint == rootSha256;
     } catch (_) {
       return false;
     }
