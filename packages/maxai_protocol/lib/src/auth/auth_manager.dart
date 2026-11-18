@@ -223,7 +223,13 @@ final class AuthManager {
     );
 
     if (response.commandType == ProtocolCommand.error) {
-      // Не выводим серверный payload: он потенциально может содержать токены.
+      // Выводим полный диагностический payload, маскируя секретные поля.
+      // Это позволяет увидеть серверные error/message/title без утечки
+      // телефона, токенов, паролей, SMS-кодов и идентификаторов сессии.
+      onLog?.call(
+        'ERROR response for auth opcode $opcode: '
+        '${_formatDiagnosticValue(response.payload)}',
+      );
       throw AuthProtocolException(
         'MAX returned ERROR for auth opcode $opcode.',
         opcode: opcode,
@@ -306,10 +312,7 @@ final class AuthManager {
       if (redactNestedStrings) {
         return '<REDACTED String(length=${value.length})>';
       }
-      final visible = value.length <= 200
-          ? value
-          : '${value.substring(0, 200)}… (length=${value.length})';
-      return '${_quoteDiagnosticString(visible)} (String)';
+      return '${_quoteDiagnosticString(value)} (String)';
     }
     if (value is num || value is bool) {
       return '$value (${value.runtimeType})';
@@ -354,10 +357,13 @@ final class AuthManager {
     return key.contains('token') ||
         key.contains('secret') ||
         key.contains('password') ||
-        key.contains('qr') ||
+        key == 'qrlink' ||
         key.contains('trackid') ||
         key.contains('phone') ||
-        key.contains('code') ||
+        key == 'code' ||
+        key.endsWith('verifycode') ||
+        key.endsWith('smscode') ||
+        key.endsWith('authcode') ||
         key.contains('authorization') ||
         key.contains('cookie') ||
         key == 'baseurl' ||
