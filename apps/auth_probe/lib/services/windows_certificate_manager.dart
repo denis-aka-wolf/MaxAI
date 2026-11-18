@@ -206,7 +206,12 @@ final class WindowsCertificateManager {
       }
       final downloaded = await response.fold<List<int>>(
         <int>[],
-        (buffer, chunk) => buffer..addAll(chunk),
+        (buffer, chunk) {
+          if (buffer.length + chunk.length > 5 * 1024 * 1024) {
+            throw const FormatException('Архив сертификатов превышает 5 MiB.');
+          }
+          return buffer..addAll(chunk);
+        },
       );
 
       List<int> certificateBytes;
@@ -225,6 +230,9 @@ final class WindowsCertificateManager {
         certificateBytes = matches.single.content as List<int>;
       }
 
+      if (certificateBytes.length > 1024 * 1024) {
+        throw const FormatException('Файл сертификата превышает 1 MiB.');
+      }
       if (!_isExpectedCertificate(certificateBytes, kind)) {
         throw const FormatException(
           'Загруженный сертификат не совпадает с закреплённым SHA-256.',
