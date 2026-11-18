@@ -13,6 +13,7 @@ final class TcpSocketTransport implements ProtocolTransport {
     this.host = 'api2.oneme.ru',
     this.port = 443,
     this.connectTimeout = const Duration(seconds: 20),
+    this.securityContext,
   }) {
     if (host.trim().isEmpty) {
       throw ArgumentError.value(host, 'host', 'Must not be empty.');
@@ -32,6 +33,7 @@ final class TcpSocketTransport implements ProtocolTransport {
   final String host;
   final int port;
   final Duration connectTimeout;
+  final SecurityContext? securityContext;
 
   SecureSocket? _socket;
 
@@ -53,6 +55,7 @@ final class TcpSocketTransport implements ProtocolTransport {
     _socket = await SecureSocket.connect(
       host,
       port,
+      context: securityContext,
       timeout: connectTimeout,
     );
   }
