@@ -64,6 +64,9 @@ flutter analyze
 flutter test
 ```
 
-Specific message lookup (MSG_GET) uses the selected Chat ID and a comma-, semicolon-\nor whitespace-separated list of Message IDs. It is read-only.\n\nLive API checks should be performed one operation at a time in the
+Specific message lookup (MSG_GET) uses the selected Chat ID and a comma-,
+semicolon- or whitespace-separated list of Message IDs. It is read-only.
+
+Live API checks should be performed one operation at a time in the
 `auth_probe` UI. A passing unit test verifies payload construction and
 response handling, not server-side availability or account permissions.
