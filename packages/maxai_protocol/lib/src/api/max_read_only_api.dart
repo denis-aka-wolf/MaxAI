@@ -24,6 +24,7 @@ final class MaxReadOnlyApi {
   static const int chatHistoryOpcode = 49;
   static const int chatsListOpcode = 53;
   static const int chatMembersOpcode = 59;
+  static const int messagesGetOpcode = 71;
 
   final ProtocolConnection connection;
   final Duration requestTimeout;
@@ -68,6 +69,25 @@ final class MaxReadOnlyApi {
       payload: <String, Object?>{'chatIds': chatIds},
     );
     return _mapList(_map(payload, 'CHAT_INFO')['chats'] ?? const [], 'chats');
+  }
+
+  /// Fetches specific messages without changing chat state.
+  Future<List<Map<String, Object?>>> getMessages({
+    required int chatId,
+    required List<int> messageIds,
+  }) async {
+    if (chatId <= 0) {
+      throw ArgumentError.value(chatId, 'chatId', 'Must be positive.');
+    }
+    _requireIds(messageIds, 'messageIds');
+    final payload = await _invoke(
+      opcode: messagesGetOpcode,
+      payload: <String, Object?>{
+        'chatId': chatId,
+        'messageIds': messageIds,
+      },
+    );
+    return _mapList(_map(payload, 'MSG_GET')['messages'] ?? const [], 'messages');
   }
 
   Future<MaxChatMembersResult> getChatMembers({
