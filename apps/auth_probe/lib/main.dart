@@ -1143,7 +1143,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       throw const FormatException('Укажи положительный числовой Chat ID.');
     }
     final messageIds = _apiMessageIdsController.text
-        .split(RegExp(r'[,;\\s]+'))
+        .split(RegExp(r'[,;\s]+'))
         .where((value) => value.isNotEmpty)
         .map(int.tryParse)
         .toList(growable: false);
