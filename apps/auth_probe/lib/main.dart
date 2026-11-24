@@ -206,6 +206,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
   final _phoneController = TextEditingController();
   final _apiContactIdController = TextEditingController();
   final _apiChatIdController = TextEditingController();
+  final _apiMessageIdsController = TextEditingController();
 
   ProtocolConnection? _connection;
   SessionManager? _sessionManager;
@@ -261,6 +262,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     _phoneController.dispose();
     _apiContactIdController.dispose();
     _apiChatIdController.dispose();
+    _apiMessageIdsController.dispose();
     super.dispose();
   }
 
@@ -1134,6 +1136,27 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     return 'CHAT_HISTORY вернул сообщений: ${messages.length}. Текст сообщений не выводится в журнал.';
   }
 
+
+  Future<String> _probeMessagesById() async {
+    final chatId = int.tryParse(_apiChatIdController.text.trim());
+    if (chatId == null || chatId <= 0) {
+      throw const FormatException('Укажи положительный числовой Chat ID.');
+    }
+    final messageIds = _apiMessageIdsController.text
+        .split(RegExp(r'[,;\\s]+'))
+        .where((value) => value.isNotEmpty)
+        .map(int.tryParse)
+        .toList(growable: false);
+    if (messageIds.isEmpty || messageIds.any((id) => id == null || id <= 0)) {
+      throw const FormatException('Укажи один или несколько положительных Message ID через запятую.');
+    }
+    final messages = await _createReadOnlyApi().getMessages(
+      chatId: chatId,
+      messageIds: messageIds.cast<int>(),
+    );
+    return 'MSG_GET вернул сообщений: ${messages.length}. Тексты сообщений не выводятся в журнал.';
+  }
+
   Future<void> _stop() async {
     _pollTimer?.cancel();
     _pollTimer = null;
@@ -1448,6 +1471,16 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                                             border: OutlineInputBorder(),
                                           ),
                                         ),
+                                        const SizedBox(height: 8),
+                                        TextField(
+                                          controller: _apiMessageIdsController,
+                                          enabled: !_apiBusy,
+                                          keyboardType: TextInputType.text,
+                                          decoration: const InputDecoration(
+                                            labelText: 'Message ID (через запятую)',
+                                            border: OutlineInputBorder(),
+                                          ),
+                                        ),
                                         if (apiChatIds.isNotEmpty) ...[
                                           const SizedBox(height: 8),
                                           DropdownButtonFormField<int>(
@@ -1499,6 +1532,10 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                                             OutlinedButton(
                                               onPressed: _apiBusy ? null : () => _runApiCheck('CHAT_HISTORY (49)', _probeChatHistory),
                                               child: const Text('История сообщений'),
+                                            ),
+                                            OutlinedButton(
+                                              onPressed: _apiBusy ? null : () => _runApiCheck('MSG_GET (71)', _probeMessagesById),
+                                              child: const Text('Получить сообщения по ID'),
                                             ),
                                           ],
                                         ),
