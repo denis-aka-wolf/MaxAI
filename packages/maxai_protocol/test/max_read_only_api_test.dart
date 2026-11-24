@@ -128,6 +128,21 @@ void main() {
     expect((await future).single['id'], 17);
   });
 
+  test('MSG_GET uses chatId and messageIds', () async {
+    final future = api.getMessages(chatId: 42, messageIds: <int>[900, 901]);
+    final request = await expectRequest(71, <String, Object?>{
+      'chatId': 42,
+      'messageIds': <int>[900, 901],
+    });
+    reply(request['sequence']! as int, 71, <String, Object?>{
+      'messages': <Object?>[
+        <String, Object?>{'id': 900, 'text': 'first'},
+        <String, Object?>{'id': 901, 'text': 'second'},
+      ],
+    });
+    expect((await future).map((message) => message['id']), <int>[900, 901]);
+  });
+
   test('CHAT_MEMBERS sends MEMBER page request and parses marker', () async {
     final future = api.getChatMembers(chatId: 42, marker: 9, count: 25);
     final request = await expectRequest(59, <String, Object?>{
