@@ -244,6 +244,10 @@ void main() {
   test('rejects invalid IDs before sending a request', () async {
     await expectLater(api.getChatInfo(<int>[]), throwsArgumentError);
     await expectLater(api.getContactInfo(<int>[0]), throwsArgumentError);
+    await expectLater(
+      api.getMessages(chatId: 42, messageIds: <int>[0]),
+      throwsArgumentError,
+    );
     expect(transport.sent, isEmpty);
   });
 }
