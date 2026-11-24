@@ -20,6 +20,7 @@ account test before it is considered verified against the server.
 | Chat information | 48 | `chatIds: [int]` | `chats` |
 | Chat members | 59 | `type: MEMBER, chatId, marker, count` | `members, marker` |
 | Chat history | 49 | `chatId, forward, backward, backwardTime, forwardTime, getChat, from, itemType, getMessages, interactive` | `messages` |
+| Specific messages | 71 | `chatId, messageIds: [int]` | `messages` |
 
 Profile and contact snapshots are read from the already received LOGIN/LOGIN2
 bootstrap result. They do not generate another network request.
