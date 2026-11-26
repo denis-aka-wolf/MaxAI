@@ -10,11 +10,19 @@ The project is currently in the protocol research and core implementation phase.
 
 ## Project structure
 
-- `docs/MAX_Protocol_Specification.md` - protocol research and specification.
+- [Project documentation](docs/ENG_README.md) - complete index of technical documentation.
+- [MAX Protocol Specification](docs/ENG_MAX_Protocol_Specification.md) - protocol research and structures.
+- [Roadmap](docs/ENG_ROADMAP.md) - development phases and planned work.
+- [Read-only API Probe](docs/ENG_READ_ONLY_API_PROBE.md) - description of read-only API checks.
+- [Windows TLS Certificate Setup](docs/ENG_TLS_CERTIFICATE_SETUP.md) - certificate installation and connection verification.
 - `packages/maxai_protocol/` - standalone Dart package for frames, MessagePack, transport connections, handshake, authentication and initial account login.
 - `apps/auth_probe/` - separate Flutter Windows application for testing WebSocket and QR authentication against the live MAX server.
 
 At this stage, the implementation includes the protocol connection, mobile/web `SESSION_INIT`, `HeartbeatManager` for PING (opcode 1), basic SMS/2FA/QR authentication and registration confirmation. Mobile/web `LOGIN` (opcode 19), conditional `LOGIN2` (opcode 8), response models and sync-marker management based on PyMax 2.5.0 schemas have also been added. Compatibility with the current MAX server has not yet been confirmed.
+
+## Documentation
+
+All documents are available from the [documentation index](docs/ENG_README.md). Russian is the primary documentation language; English translations use the `ENG_` prefix.
 
 ## Testing MAX authentication
 
