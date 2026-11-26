@@ -1,79 +1,79 @@
-# TLS certificate setup for Windows
+# Настройка TLS-сертификатов Windows
 
-This document describes the certificate checks used by the `auth_probe` laboratory application for the MAX TCP/TLS endpoint `api2.oneme.ru:443`.
+Документ описывает проверки сертификатов, используемые лабораторным приложением `auth_probe` для TCP/TLS endpoint MAX `api2.oneme.ru:443`.
 
-## Trust model
+## Модель доверия
 
-The application does not disable certificate validation and does not accept arbitrary certificates presented by the server.
+Приложение не отключает проверку сертификатов и не принимает произвольные сертификаты, предъявленные сервером.
 
-It uses two pinned certificates:
+Используются два сертификата с закреплёнными отпечатками:
 
-| Certificate | Purpose | Windows store | SHA-1 | SHA-256 |
+| Сертификат | Назначение | Хранилище Windows | SHA-1 | SHA-256 |
 |---|---|---|---|---|
-| Russian Trusted Root CA | Trust root | `CurrentUser\\Root` | `8FF915CCAB7BC16F8C5C8099D53E0E115B3AEC2F` | `D26D2D0231B7C39F92CC738512BA54103519E4405D68B5BD703E9788CA8ECF31` |
-| Russian Trusted Sub CA 2024 | Issuing intermediate used by the MAX endpoint | `CurrentUser\\CA` | `6741AB02CF6598C09652DC34D2DC095904E32B52` | `2155785036C900DBB5F1BB2A1569C80C55595BD6BF94867A29BBDDBC7D88A3F2` |
+| Russian Trusted Root CA | Корневой центр доверия | `CurrentUser\\Root` | `8FF915CCAB7BC16F8C5C8099D53E0E115B3AEC2F` | `D26D2D0231B7C39F92CC738512BA54103519E4405D68B5BD703E9788CA8ECF31` |
+| Russian Trusted Sub CA 2024 | Промежуточный центр, выдающий сертификат для endpoint MAX | `CurrentUser\\CA` | `6741AB02CF6598C09652DC34D2DC095904E32B52` | `2155785036C900DBB5F1BB2A1569C80C55595BD6BF94867A29BBDDBC7D88A3F2` |
 
-The old generic `russian_trusted_sub_ca_pem.crt` is a different, older intermediate (2022). It must not be substituted for the 2024 certificate presented in the observed MAX chain.
+Старый файл общего назначения `russian_trusted_sub_ca_pem.crt` содержит другой, более старый промежуточный сертификат (2022). Его нельзя подставлять вместо сертификата 2024 года, присутствующего в наблюдавшейся цепочке MAX.
 
-## Download sources
+## Источники загрузки
 
 - Root PEM: https://gu-st.ru/content/lending/russian_trusted_root_ca_pem.crt
-- Official Sub CA archive: https://gu-st.ru/content/lending/russian_trusted_sub_ca_pem.zip
-- Official certificate information page: https://www.gosuslugi.ru/crt
+- Официальный архив Sub CA: https://gu-st.ru/content/lending/russian_trusted_sub_ca_pem.zip
+- Официальная страница со сведениями о сертификатах: https://www.gosuslugi.ru/crt
 
-The application extracts the specifically named 2024 PEM certificate from the official Sub CA archive and validates both SHA-1 and SHA-256 against the constants in `WindowsCertificateManager`. The downloaded file is not trusted merely because it came from a TLS connection or has a matching display name.
+Приложение извлекает из официального архива PEM-сертификат 2024 года с конкретным именем и проверяет его SHA-1 и SHA-256 по константам `WindowsCertificateManager`. Загруженный файл не считается доверенным только потому, что он получен через TLS или имеет совпадающее отображаемое имя.
 
-The official archive URL is an HTTPS endpoint. If its layout or certificate filenames change, the download must fail closed until the new artifact is inspected and its fingerprint is independently verified. Do not fall back to the older 2022 certificate.
+Официальный URL архива использует HTTPS. Если структура архива или имена сертификатов изменятся, загрузка должна завершиться отказом до проверки нового артефакта и независимого подтверждения его отпечатка. Не использовать старый сертификат 2022 года в качестве запасного варианта.
 
-## Validation performed before use
+## Проверки перед использованием
 
-For each certificate the application:
+Для каждого сертификата приложение:
 
-1. Downloads only from the configured official source, with redirects disabled and a size limit.
-2. Parses the PEM certificate and checks the pinned SHA-1 and SHA-256 fingerprints.
-3. Uses Windows CryptoAPI to inspect Subject, Issuer, validity dates, Basic Constraints and Key Usage.
-4. Requires CA=true and KeyCertSign.
-5. Verifies that the intermediate chain terminates at the pinned Root CA and that no unexpected chain status remains.
-6. Rejects expired or not-yet-valid certificates.
+1. Загружает файл только из настроенного официального источника, отключив перенаправления и установив ограничение размера.
+2. Разбирает PEM-сертификат и проверяет закреплённые отпечатки SHA-1 и SHA-256.
+3. Использует Windows CryptoAPI для проверки Subject, Issuer, сроков действия, Basic Constraints и Key Usage.
+4. Требует `CA=true` и `KeyCertSign`.
+5. Проверяет, что цепочка промежуточного сертификата завершается закреплённым Root CA и не содержит неожиданных статусов.
+6. Отклоняет просроченные сертификаты и сертификаты, срок действия которых ещё не наступил.
 
-The root must be self-issued. The intermediate must identify the pinned Root CA as its issuer.
+Корневой сертификат должен быть самовыданным. Issuer промежуточного сертификата должен соответствовать закреплённому Root CA.
 
-## Installation behavior
+## Установка
 
-Installation is a separate user action for each certificate and requires explicit confirmation in the UI.
+Установка каждого сертификата является отдельным действием пользователя и требует явного подтверждения в интерфейсе.
 
-- Root is added only to the current user's `Root` store.
-- Intermediate is added only to the current user's `CA` store.
-- A certificate present only in `LocalMachine` is reported separately; it does not suppress installation into `CurrentUser`.
-- The app verifies that the certificate is present in the intended current-user store after installation.
+- Root добавляется только в хранилище `Root` текущего пользователя.
+- Intermediate добавляется только в хранилище `CA` текущего пользователя.
+- Если сертификат присутствует только в `LocalMachine`, приложение сообщает об этом отдельно. Такое наличие не отменяет установку в `CurrentUser`.
+- После установки приложение проверяет наличие сертификата в целевом хранилище текущего пользователя.
 
-No administrator elevation is requested. The application must never install the leaf certificate for `*.oneme.ru` as a root or intermediate CA.
+Повышение прав администратора не запрашивается. Приложение ни при каких обстоятельствах не должно устанавливать конечный сертификат для `*.oneme.ru` как корневой или промежуточный CA.
 
-## TLS checks in auth_probe
+## Проверки TLS в auth_probe
 
-The certificate panel exposes separate operations:
+Панель сертификатов предоставляет отдельные операции:
 
-- Inspect Root CA.
-- Install Root CA.
-- Inspect Intermediate CA.
-- Install Intermediate CA.
-- Test the platform/default Dart TLS context.
-- Test the MaxAI context with the pinned Russian certificates.
+- Проверить Root CA.
+- Установить Root CA.
+- Проверить Intermediate CA.
+- Установить Intermediate CA.
+- Проверить стандартный TLS-контекст платформы/Dart.
+- Проверить контекст MaxAI с закреплёнными российскими сертификатами.
 
-After a successful installation, both TLS checks run again. Each check connects to `api2.oneme.ru:443` using normal TLS certificate and hostname validation. No `badCertificateCallback`, insecure context, or equivalent bypass is permitted.
+После успешной установки обе TLS-проверки запускаются повторно. Каждая проверка подключается к `api2.oneme.ru:443` со штатной проверкой TLS-сертификата и имени хоста. Использование `badCertificateCallback`, небезопасного контекста или эквивалентного обхода запрещено.
 
-The MaxAI context retains platform roots and adds only the pinned Root and the independently verified, pinned 2024 issuing certificate. The intermediate is accepted because its exact certificate bytes are pinned and its issuer chain is verified against the pinned root before it is loaded.
+Контекст MaxAI сохраняет корневые сертификаты платформы и дополнительно включает только закреплённые Root CA и независимо проверенный промежуточный сертификат 2024 года. Промежуточный сертификат принимается потому, что его точные байты закреплены, а цепочка его Issuer проверена относительно закреплённого корневого сертификата до загрузки.
 
-## Remaining release validation
+## Оставшиеся проверки перед релизом
 
-The following checks require execution on Windows and cannot be established by repository inspection alone:
+Следующие проверки необходимо выполнить непосредственно в Windows. Их нельзя подтвердить одним лишь изучением репозитория:
 
-- Run `flutter analyze` and `flutter test` from `apps/auth_probe`.
-- Run both TLS checks on a Windows profile with neither certificate preinstalled.
-- Install Root and Intermediate separately, confirming the exact target stores.
-- Confirm the platform/default TLS result before and after installation.
-- Confirm the MaxAI pinned-context result before and after installation.
-- Repeat on a clean Windows machine or clean user profile.
-- Test expired, modified, wrong-issuer and wrong-fingerprint certificate files and confirm fail-closed behavior.
+- Выполнить `flutter analyze` и `flutter test` из `apps/auth_probe`.
+- Запустить обе TLS-проверки в профиле Windows, где оба сертификата изначально отсутствуют.
+- Установить Root и Intermediate по отдельности и подтвердить точные целевые хранилища.
+- Проверить результат стандартного TLS-контекста до и после установки.
+- Проверить результат закреплённого TLS-контекста MaxAI до и после установки.
+- Повторить проверки на чистой Windows или в чистом пользовательском профиле.
+- Проверить просроченные, изменённые сертификаты, сертификаты с неверным Issuer и неверным отпечатком; убедиться, что приложение во всех случаях отказывает в использовании.
 
-Do not close Issue #1 until these Windows runtime checks have been reported and reviewed.
+Не закрывать Issue #1 до получения и проверки отчётов об этих runtime-тестах Windows.
