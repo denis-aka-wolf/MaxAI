@@ -1,3 +1,5 @@
+[RU](README.md) | [ENG](ENG_README.md)
+
 # MaxAI Documentation
 
 Russian is the project's default documentation language. Russian documents are the authoritative source versions. English translations are stored in separate Markdown files prefixed with `ENG_`.
