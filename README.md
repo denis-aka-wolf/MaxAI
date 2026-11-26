@@ -1,3 +1,5 @@
+[RU](README.md) | [ENG](ENG_README.md)
+
 # MaxAI
 
 Самостоятельный MAX-клиент и AI-ассистент на Dart + Flutter для Windows.
