@@ -6,59 +6,66 @@ An independent MAX client and AI assistant built with Dart + Flutter for Windows
 
 ## Development status
 
-The project is currently in the protocol research and core implementation phase. Compatibility of the unofficial internal MAX API with the current MAX server has not yet been confirmed.
+The project is in the MAX protocol validation and protocol-core completion phase. MAX's internal API is not a public stable specification, so each operation must be validated separately.
 
 ## Project structure
 
-- [Project documentation](docs/ENG_README.md) - complete index of technical documentation.
-- [MAX Protocol Specification](docs/MAX_Protocol_Specification.md) - protocol research and structures (Russian original; English translation in progress).
+- [Project documentation](docs/ENG_README.md) - technical documentation index.
+- [MAX Protocol Specification](docs/MAX_Protocol_Specification.md) - protocol structure research (Russian source).
 - [Roadmap](docs/ENG_ROADMAP.md) - development phases and planned work.
-- [Read-only API Probe](docs/ENG_READ_ONLY_API_PROBE.md) - description of read-only API checks.
-- [Windows TLS Certificate Setup](docs/ENG_TLS_CERTIFICATE_SETUP.md) - certificate installation and connection verification.
-- `packages/maxai_protocol/` - standalone Dart package for frames, MessagePack, transport connections, handshake, authentication and initial account login.
-- `apps/auth_probe/` - separate Flutter Windows application for testing WebSocket and QR authentication against the live MAX server.
+- [Read-only API Probe](docs/ENG_READ_ONLY_API_PROBE.md) - implemented read operations and their validation procedure.
+- [Windows TLS Certificate Setup](docs/ENG_TLS_CERTIFICATE_SETUP.md) - certificate validation and installation for TCP/TLS.
+- `packages/maxai_protocol/` - standalone Dart library for the MAX protocol.
+- `apps/auth_probe/` - separate Windows laboratory application for authentication, TLS and API testing. It is a test tool, not the main MaxAI application.
 
-At this stage, the implementation includes the protocol connection, mobile/web `SESSION_INIT`, `HeartbeatManager` for PING (opcode 1), basic SMS/2FA/QR authentication and registration confirmation. Mobile/web `LOGIN` (opcode 19), conditional `LOGIN2` (opcode 8), response models and sync-marker management based on PyMax 2.5.0 schemas have also been added. Compatibility with the current MAX server has not yet been confirmed.
+## Implemented protocol-core capabilities
 
-## Documentation
+- TCP/TLS transport for mobile connections and WebSocket transport for web connections.
+- Mobile/web `SESSION_INIT` and Heartbeat.
+- QR authentication over WebSocket.
+- SMS authentication over TCP/TLS and 2FA handling.
+- `LOGIN` / `LOGIN2`, session restoration and local Logout.
+- Secure local token and device ID storage through Windows DPAPI.
+- Initial read-only API set: profile and contact snapshots from LOGIN/LOGIN2, CONTACT_INFO (32), CHATS_LIST (53), CHAT_INFO (48), CHAT_MEMBERS (59), CHAT_HISTORY (49) and MSG_GET (71).
+- TLS certificate diagnostics and separate inspect/install actions in `auth_probe`.
 
-All documents are available from the [documentation index](docs/ENG_README.md). Russian is the primary documentation language; English translations use the `ENG_` prefix.
+The read-only API implementation and payload schemas are based on PyMax research. Live validation of each method against the MAX server is still pending. An implementation and passing unit tests do not, by themselves, prove server compatibility.
 
-## Testing MAX authentication
+## Run auth_probe on Windows
 
-To run the diagnostic application on Windows:
+From the repository root:
 
 ```powershell
 cd apps/auth_probe
-flutter create . --platforms=windows
 flutter pub get
 flutter analyze
+flutter test
 flutter run -d windows
 ```
 
-The application tests WebSocket, SESSION_INIT, QR, LOGIN and conditional LOGIN2. TCP + TLS and SMS support will be added later.
+Use the repository's generated Windows platform files. Run `flutter create .` only if the Windows runner is missing, not as part of every launch.
 
-## Testing the protocol package
+## Test the protocol package
 
-Run the following commands for local verification:
-
-```bash
+```powershell
 cd packages/maxai_protocol
 dart pub get
 dart analyze
 dart test
 ```
 
-## Continuous integration (CI)
+## Continuous integration
 
-[Dart Protocol CI](https://github.com/denis-aka-wolf/MaxAI/blob/main/.github/workflows/dart_protocol.yml)
+[Dart Protocol CI](https://github.com/denis-aka-wolf/MaxAI/blob/dev/.github/workflows/dart_protocol.yml)
 
-Whenever files in `packages/maxai_protocol/` change, GitHub Actions automatically retrieves dependencies and runs static analysis and tests.
+CI is intended to retrieve dependencies, run static analysis and test the `packages/maxai_protocol/` package.
 
-## Principles
+## Project principles
 
-- Dart + Flutter only in the application.
-- Secrets are never stored in source files, SQLite or logs.
-- Group chats are completely excluded from AI processing.
-- Automatic sending is disabled by default and requires explicit permission for each contact.
-- Unknown protocol details are marked as requiring verification.
+- `auth_probe` remains a separate laboratory and is not a substitute for the main MaxAI application.
+- Secrets and personal data must not appear in source files or diagnostic logs.
+- TLS certificate validation must never be disabled or bypassed.
+- Unknown protocol details are explicitly marked as requiring verification.
+- Mutating operations are excluded from the read-only API.
+- Group chats are excluded from AI processing according to the project's established requirement.
+- Automatic message sending is disabled by default and requires explicit permission.
