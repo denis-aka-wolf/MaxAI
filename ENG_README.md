@@ -11,7 +11,7 @@ The project is currently in the protocol research and core implementation phase.
 ## Project structure
 
 - [Project documentation](docs/ENG_README.md) - complete index of technical documentation.
-- [MAX Protocol Specification](docs/ENG_MAX_Protocol_Specification.md) - protocol research and structures.
+- [MAX Protocol Specification](docs/MAX_Protocol_Specification.md) - protocol research and structures (Russian original; English translation in progress).
 - [Roadmap](docs/ENG_ROADMAP.md) - development phases and planned work.
 - [Read-only API Probe](docs/ENG_READ_ONLY_API_PROBE.md) - description of read-only API checks.
 - [Windows TLS Certificate Setup](docs/ENG_TLS_CERTIFICATE_SETUP.md) - certificate installation and connection verification.
