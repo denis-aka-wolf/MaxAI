@@ -17,7 +17,7 @@
 
 | Тема | Русский оригинал | English translation |
 |---|---|---|
-| Спецификация протокола MAX | [MAX_Protocol_Specification.md](MAX_Protocol_Specification.md) | [ENG_MAX_Protocol_Specification.md](ENG_MAX_Protocol_Specification.md) |
+| Спецификация протокола MAX | [MAX_Protocol_Specification.md](MAX_Protocol_Specification.md) | Перевод готовится |
 | Read-only API Probe | [READ_ONLY_API_PROBE.md](READ_ONLY_API_PROBE.md) | [ENG_READ_ONLY_API_PROBE.md](ENG_READ_ONLY_API_PROBE.md) |
 | Дорожная карта | [ROADMAP.md](ROADMAP.md) | [ENG_ROADMAP.md](ENG_ROADMAP.md) |
 | Настройка TLS-сертификатов Windows | [TLS_CERTIFICATE_SETUP.md](TLS_CERTIFICATE_SETUP.md) | [ENG_TLS_CERTIFICATE_SETUP.md](ENG_TLS_CERTIFICATE_SETUP.md) |
