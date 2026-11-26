@@ -13,13 +13,12 @@ Russian is the project's default documentation language. Russian documents are t
 - Whenever a Russian source document changes, its English translation must be reviewed and updated in the same change.
 - The English version must preserve the structure, technical meaning, statuses, examples, tables and warnings of the Russian source.
 - API names, opcodes, class names, methods, variables, protocol fields, commands and file paths are not translated.
-- If a translation is not yet synchronized, this must be stated explicitly in both documents.
 
 ## Documents
 
 | Topic | Russian source | English translation |
 |---|---|---|
-| MAX protocol specification | [MAX_Protocol_Specification.md](MAX_Protocol_Specification.md) | Translation in progress |
+| MAX protocol specification | [MAX_Protocol_Specification.md](MAX_Protocol_Specification.md) | Translation not yet complete |
 | Read-only API Probe | [READ_ONLY_API_PROBE.md](READ_ONLY_API_PROBE.md) | [ENG_READ_ONLY_API_PROBE.md](ENG_READ_ONLY_API_PROBE.md) |
 | Roadmap | [ROADMAP.md](ROADMAP.md) | [ENG_ROADMAP.md](ENG_ROADMAP.md) |
 | Windows TLS certificate setup | [TLS_CERTIFICATE_SETUP.md](TLS_CERTIFICATE_SETUP.md) | [ENG_TLS_CERTIFICATE_SETUP.md](ENG_TLS_CERTIFICATE_SETUP.md) |
