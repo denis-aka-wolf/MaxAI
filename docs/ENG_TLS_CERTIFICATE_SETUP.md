@@ -76,4 +76,4 @@ The following checks must be performed on Windows. They cannot be confirmed by r
 - Repeat the checks on a clean Windows installation or clean user profile.
 - Test expired and modified certificates, certificates with an incorrect Issuer and certificates with incorrect fingerprints; verify that the application rejects them in every case.
 
-Do not close Issue #1 until reports from these Windows runtime tests have been provided and reviewed.
+Issue #1 was closed after successful Root and Intermediate CA installation, successful platform/default and pinned TLS checks, and validation on a clean Windows environment were confirmed. The negative tests with invalid certificates listed above remain additional pre-release validation.
