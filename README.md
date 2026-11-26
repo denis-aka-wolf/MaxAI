@@ -1,3 +1,5 @@
+[RU](README.md) | [ENG](ENG_README.md)
+
 # MaxAI
 
 Самостоятельный MAX-клиент и AI-ассистент на Dart + Flutter для Windows.
@@ -8,11 +10,19 @@
 
 ## Структура
 
-- `docs/MAX_Protocol_Specification.md` — исследование протокола.
+- [Документация проекта](docs/README.md) — полный каталог технической документации.
+- [Спецификация протокола MAX](docs/MAX_Protocol_Specification.md) — исследование протокола и его структур.
+- [Дорожная карта](docs/ROADMAP.md) — этапы и план разработки.
+- [Read-only API Probe](docs/READ_ONLY_API_PROBE.md) — описание проверок API в режиме чтения.
+- [Настройка TLS-сертификатов Windows](docs/TLS_CERTIFICATE_SETUP.md) — установка и проверка сертификатов для подключения.
 - `packages/maxai_protocol/` — самостоятельный Dart-пакет frame, MessagePack, транспортного соединения, handshake, авторизации и начального входа в аккаунт.
 - `apps/auth_probe/` — отдельное Flutter Windows-приложение для проверки WebSocket + QR авторизации на реальном сервере MAX.
 
 На текущем этапе реализованы протокольное соединение, mobile/web `SESSION_INIT`, `HeartbeatManager` для PING (opcode 1), базовая SMS/2FA/QR-авторизация и подтверждение регистрации. Добавлены mobile/web `LOGIN` (opcode 19), условный `LOGIN2` (opcode 8), модели ответов и управление sync markers по схемам PyMax 2.5.0. Совместимость с действующим сервером MAX пока не подтверждена.
+
+## Документация
+
+Все документы доступны из [каталога документации](docs/README.md). Основная версия ведётся на русском языке, английские переводы имеют префикс `ENG_`.
 
 ## Проверка авторизации MAX
 
