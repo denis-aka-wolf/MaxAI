@@ -440,15 +440,20 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     if (_certificateBusy || _busy) return;
     setState(() => _certificateBusy = true);
     final isRoot = kind == WindowsCertificateKind.root;
+    var shouldRetestTls = false;
     try {
       final info = await _certificateManager.inspect(kind);
-      if (info.installed) {
-        _log('Сертификат уже установлен в Windows. Повторная установка не требуется.');
+      if (info.currentUserInstalled) {
+        _log('Сертификат уже установлен в CurrentUser. Повторная установка не требуется.');
       } else if (await _confirmCertificateInstall(kind, info)) {
         await _certificateManager.install(kind);
+        shouldRetestTls = true;
         _log(isRoot
             ? 'Russian Trusted Root CA установлен в CurrentUser\\Root.'
             : 'Russian Trusted Sub CA 2024 установлен в CurrentUser\\CA.');
+        if (info.localMachineInstalled) {
+          _log('Сертификат также присутствует в LocalMachine; установка для текущего пользователя выполнена отдельно.');
+        }
       } else {
         _log('Установка отменена. Хранилище Windows не изменено.');
       }
@@ -456,7 +461,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       final status = refreshed.currentUserInstalled
           ? 'Установлен: CurrentUser'
           : refreshed.localMachineInstalled
-              ? 'Установлен: LocalMachine'
+              ? 'Есть только в LocalMachine'
               : 'Проверен, не установлен';
       if (mounted) {
         setState(() {
@@ -471,6 +476,15 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       _log('Установка сертификата не удалась: ${_safeError(error)}');
     } finally {
       if (mounted) setState(() => _certificateBusy = false);
+    }
+
+    // Re-run both TLS paths after a successful store change. This verifies
+    // the Windows store and the app's explicitly pinned TLS context separately.
+    if (shouldRetestTls && mounted) {
+      await _checkApiTls(usePinnedRoot: false);
+      if (mounted) {
+        await _checkApiTls(usePinnedRoot: true);
+      }
     }
   }
 
