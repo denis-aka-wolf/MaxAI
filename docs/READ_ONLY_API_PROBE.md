@@ -1,72 +1,55 @@
-# Read-only MAX API Probe
+# Проверка read-only API MAX
 
-This document records the first read-only API surface implemented in
-`packages/maxai_protocol` and exposed by the Windows `apps/auth_probe`
-application.
+Документ описывает первоначальный набор API MAX только для чтения, реализованный в `packages/maxai_protocol` и доступный через Windows-приложение `apps/auth_probe`.
 
-The implementation is based on payload builders and service methods inspected
-in the current PyMax source. PyMax is a reverse-engineered reference, not an
-official MAX protocol specification. Every method still requires a live
-account test before it is considered verified against the server.
+Реализация основана на конструкторах payload и методах сервисов, изученных в текущем исходном коде PyMax. PyMax является результатом обратного исследования, а не официальной спецификацией протокола MAX. Каждый метод необходимо дополнительно проверить на реальном аккаунте, прежде чем считать его подтверждённым сервером.
 
-## Implemented
+## Реализованные операции
 
-| Operation | Opcode | Request payload | Response field |
+| Операция | Opcode | Payload запроса | Поле ответа |
 |---|---:|---|---|
-| Profile snapshot | LOGIN / LOGIN2 | No additional request | `profile` |
-| Contacts snapshot | LOGIN / LOGIN2 | No additional request | `contacts` / `contactInfos` |
-| Contact information | 32 | `contactIds: [int]` | `contacts` |
-| Chats list | 53 | `marker: int` | `chats` |
-| Chat information | 48 | `chatIds: [int]` | `chats` |
-| Chat members | 59 | `type: MEMBER, chatId, marker, count` | `members, marker` |
-| Chat history | 49 | `chatId, forward, backward, backwardTime, forwardTime, getChat, from, itemType, getMessages, interactive` | `messages` |
-| Specific messages | 71 | `chatId, messageIds: [int]` | `messages` |
+| Снимок профиля | LOGIN / LOGIN2 | Дополнительный запрос не требуется | `profile` |
+| Снимок контактов | LOGIN / LOGIN2 | Дополнительный запрос не требуется | `contacts` / `contactInfos` |
+| Информация о контактах | 32 | `contactIds: [int]` | `contacts` |
+| Список чатов | 53 | `marker: int` | `chats` |
+| Информация о чате | 48 | `chatIds: [int]` | `chats` |
+| Участники чата | 59 | `type: MEMBER, chatId, marker, count` | `members, marker` |
+| История чата | 49 | `chatId, forward, backward, backwardTime, forwardTime, getChat, from, itemType, getMessages, interactive` | `messages` |
+| Выборка отдельных сообщений | 71 | `chatId, messageIds: [int]` | `messages` |
 
-Profile and contact snapshots are read from the already received LOGIN/LOGIN2
-bootstrap result. They do not generate another network request.
+Снимки профиля и контактов извлекаются из уже полученного bootstrap-ответа LOGIN/LOGIN2. Дополнительный сетевой запрос для этого не выполняется.
 
-## Important opcode distinction
+## Важное различие opcode
 
-Opcode 16 (`PROFILE`) is used by the inspected PyMax implementation to change
-the current profile. It is not a profile-read operation and is deliberately
-excluded from the read-only API.
+Opcode 16 (`PROFILE`) используется в изученной реализации PyMax для изменения текущего профиля. Это не операция чтения профиля, поэтому она намеренно исключена из read-only API.
 
-Opcode 36 (`CONTACT_LIST`) appears in the opcode enum, but the inspected PyMax
-source does not provide a corresponding list payload/service method. It is
-therefore not sent until its request schema and semantics are independently
-confirmed. Contact details are currently fetched through opcode 32 using
-`contactIds`.
+Opcode 36 (`CONTACT_LIST`) присутствует в enum opcode, однако в изученном исходном коде PyMax нет соответствующего payload или метода сервиса для получения списка. Поэтому этот opcode не отправляется до независимого подтверждения схемы запроса и семантики. На данный момент сведения о контактах запрашиваются через opcode 32 с использованием `contactIds`.
 
-## Safety and diagnostics
+## Безопасность и диагностика
 
-- The API layer accepts only RESPONSE frames matching the requested opcode.
-- ERROR frames become a safe exception; the raw server payload is not copied
-  into the exception or diagnostic log.
-- API Probe logs operation name, elapsed time, counts and safe errors.
-- Message text, contact details, tokens and raw response payloads are not
-  written to the journal.
-- No write operations are included in this API surface.
-- The UI exposes independent buttons and requires an authenticated session.
+- API-слой принимает только RESPONSE-кадры, соответствующие запрошенному opcode.
+- Кадры ERROR преобразуются в безопасное исключение; исходный payload сервера не копируется в исключение или диагностический журнал.
+- API Probe записывает название операции, время выполнения, количество полученных элементов и безопасные сведения об ошибках.
+- Текст сообщений, сведения о контактах, токены и исходные payload ответов в журнал не записываются.
+- В этот набор API не входят операции изменения данных.
+- Интерфейс предоставляет отдельные кнопки для операций и требует авторизованную сессию.
 
-## Local verification
+## Локальная проверка
 
-From `packages/maxai_protocol`:
+Из каталога `packages/maxai_protocol`:
 
 ```powershell
 dart analyze
 dart test
 ```
 
-From `apps/auth_probe`:
+Из каталога `apps/auth_probe`:
 
 ```powershell
 flutter analyze
 flutter test
 ```
 
-Specific message lookup (MSG_GET) uses the selected Chat ID and a comma-,
-semicolon- or whitespace-separated list of Message IDs. It is read-only.
+Для выборки отдельных сообщений (MSG_GET) используются выбранный Chat ID и список Message ID, разделённых запятыми, точками с запятой или пробельными символами. Операция не изменяет данные.
 
-Live API checks should be performed one operation at a time in the
-`auth_probe` UI. A passing unit test verifies payload construction and
-response handling, not server-side availability or account permissions.
+Проверки реального API следует выполнять по одной операции за раз через интерфейс `auth_probe`. Успешный unit-тест подтверждает формирование payload и обработку ответа, но не доступность операции на сервере и не наличие необходимых прав у аккаунта.
