@@ -86,18 +86,25 @@ final class WindowsCertificateManager {
     final rootPath = await _loadVerifiedCertificate(
       WindowsCertificateKind.root,
     );
+    final intermediatePath = await _loadVerifiedCertificate(
+      WindowsCertificateKind.intermediate,
+    );
     final rootBytes = await File(rootPath).readAsBytes();
-    // Keep the platform roots and add the pinned Russian root. The server
-    // must present its intermediate; it is not promoted to a trust anchor.
+    final intermediateBytes = await File(intermediatePath).readAsBytes();
+
+    // Keep platform roots and add only the two certificates whose SHA-1 and
+    // SHA-256 fingerprints are pinned above. The intermediate is separately
+    // verified as signed by the pinned root before it enters this context.
     return SecurityContext(withTrustedRoots: true)
-      ..setTrustedCertificatesBytes(rootBytes);
+      ..setTrustedCertificatesBytes(rootBytes)
+      ..setTrustedCertificatesBytes(intermediateBytes);
   }
 
   Future<void> install(WindowsCertificateKind kind) async {
     _requireWindows();
     final path = await _loadVerifiedCertificate(kind);
     final stores = await _readStorePresence(kind);
-    if (stores.currentUser || stores.localMachine) return;
+    if (stores.currentUser) return;
 
     final store = kind == WindowsCertificateKind.root ? 'Root' : 'CA';
     final args = <String>['-user', '-addstore', store, path];
@@ -117,8 +124,8 @@ final class WindowsCertificateManager {
       );
     }
     final verified = await _readStorePresence(kind);
-    if (!verified.currentUser && !verified.localMachine) {
-      throw StateError('Windows не подтвердила установку сертификата в $store.');
+    if (!verified.currentUser) {
+      throw StateError('Windows не подтвердила установку сертификата в CurrentUser\\$store.');
     }
   }
 
