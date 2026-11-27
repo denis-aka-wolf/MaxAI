@@ -76,8 +76,7 @@ class WindowsDpapiStorage {
       )>('CryptUnprotectData');
 
   static final Pointer<Void> Function(Pointer<Void>) _localFree =
-      _kernel32.lookupFunction<
-          Pointer<Void> Function(Pointer<Void>),
+      _kernel32.lookupFunction<Pointer<Void> Function(Pointer<Void>),
           Pointer<Void> Function(Pointer<Void>)>('LocalFree');
 
   static Future<String?> read({required String key}) async {
@@ -119,8 +118,8 @@ class WindowsDpapiStorage {
       throw ArgumentError.value(key, 'key', 'Неизвестный ключ хранилища.');
     }
 
-    final basePath = Platform.environment['LOCALAPPDATA'] ??
-        Platform.environment['APPDATA'];
+    final basePath =
+        Platform.environment['LOCALAPPDATA'] ?? Platform.environment['APPDATA'];
     if (basePath == null || basePath.isEmpty) {
       throw StateError('Не удалось определить каталог профиля Windows.');
     }
@@ -160,9 +159,11 @@ class WindowsDpapiStorage {
       );
       if (success == 0) throw _windowsError('CryptProtectData');
 
-      return Uint8List.fromList(output.ref.pbData.asTypedList(output.ref.cbData));
+      return Uint8List.fromList(
+          output.ref.pbData.asTypedList(output.ref.cbData));
     } finally {
-      if (output.ref.pbData != nullptr) _localFree(output.ref.pbData.cast<Void>());
+      if (output.ref.pbData != nullptr)
+        _localFree(output.ref.pbData.cast<Void>());
       calloc.free(description);
       calloc.free(entropy);
       calloc.free(entropyBytes);
@@ -203,10 +204,13 @@ class WindowsDpapiStorage {
       );
       if (success == 0) throw _windowsError('CryptUnprotectData');
 
-      return Uint8List.fromList(output.ref.pbData.asTypedList(output.ref.cbData));
+      return Uint8List.fromList(
+          output.ref.pbData.asTypedList(output.ref.cbData));
     } finally {
-      if (output.ref.pbData != nullptr) _localFree(output.ref.pbData.cast<Void>());
-      if (description.value != nullptr) _localFree(description.value.cast<Void>());
+      if (output.ref.pbData != nullptr)
+        _localFree(output.ref.pbData.cast<Void>());
+      if (description.value != nullptr)
+        _localFree(description.value.cast<Void>());
       calloc.free(description);
       calloc.free(entropy);
       calloc.free(entropyBytes);
@@ -217,10 +221,12 @@ class WindowsDpapiStorage {
   }
 
   static Object _windowsError(String operation) {
-    final getLastError = _kernel32.lookupFunction<Uint32 Function(), int Function()>(
+    final getLastError =
+        _kernel32.lookupFunction<Uint32 Function(), int Function()>(
       'GetLastError',
     );
-    return StateError('$operation завершился ошибкой Windows. Код: ${getLastError()}.');
+    return StateError(
+        '$operation завершился ошибкой Windows. Код: ${getLastError()}.');
   }
 
   static void _ensureWindows() {

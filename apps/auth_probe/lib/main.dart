@@ -33,7 +33,6 @@ class AuthProbeApp extends StatelessWidget {
   }
 }
 
-
 class _TwoFactorPasswordDialog extends StatefulWidget {
   const _TwoFactorPasswordDialog({this.hint});
 
@@ -44,8 +43,7 @@ class _TwoFactorPasswordDialog extends StatefulWidget {
       _TwoFactorPasswordDialogState();
 }
 
-class _TwoFactorPasswordDialogState
-    extends State<_TwoFactorPasswordDialog> {
+class _TwoFactorPasswordDialogState extends State<_TwoFactorPasswordDialog> {
   late final TextEditingController _controller;
 
   @override
@@ -111,7 +109,6 @@ class _TwoFactorPasswordDialogState
     );
   }
 }
-
 
 class _SmsCodeDialog extends StatefulWidget {
   const _SmsCodeDialog({required this.codeLength});
@@ -250,7 +247,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       _log('Найдена сохранённая авторизация. Пробуем восстановить сессию.');
       await _connectAndStartQr(useSms: method == 'mobile');
     } catch (error) {
-      _log('Не удалось прочитать сохранённую авторизацию: ${_safeError(error)}');
+      _log(
+          'Не удалось прочитать сохранённую авторизацию: ${_safeError(error)}');
     }
   }
 
@@ -357,15 +355,15 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       locale: 'ru',
       deviceName: 'Chrome',
       deviceLocale: 'ru',
-      headerUserAgent:
-          'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 '
+      headerUserAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 '
           '(KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',
     );
   }
 
   Future<SecurityContext> _prepareWindowsTlsContext() async {
     final context = await _certificateManager.createTlsContext();
-    _log('TLS-контекст создан: системные корни Windows + закреплённый Russian Trusted Root CA.');
+    _log(
+        'TLS-контекст создан: системные корни Windows + закреплённый Russian Trusted Root CA.');
     return context;
   }
 
@@ -379,7 +377,9 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
           context: context,
           barrierDismissible: false,
           builder: (dialogContext) => AlertDialog(
-            title: Text(isRoot ? 'Установка корневого сертификата' : 'Установка промежуточного сертификата'),
+            title: Text(isRoot
+                ? 'Установка корневого сертификата'
+                : 'Установка промежуточного сертификата'),
             content: SelectableText(
               '${info.subject}\nSHA-1: ${info.thumbprint}\nSHA-256: ${info.sha256}\n\n'
               'Установка в хранилище текущего пользователя Windows: ${isRoot ? 'Root' : 'CA'}. '
@@ -387,8 +387,12 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
               'Права администратора не требуются.',
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Отмена')),
-              FilledButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Установить')),
+              TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Отмена')),
+              FilledButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: const Text('Установить')),
             ],
           ),
         ) ??
@@ -400,7 +404,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     setState(() => _certificateBusy = true);
     final isRoot = kind == WindowsCertificateKind.root;
     try {
-      _log('Проверка ${isRoot ? 'корневого' : 'промежуточного'} сертификата: источник, отпечатки, Subject/Issuer, CA и срок действия.');
+      _log(
+          'Проверка ${isRoot ? 'корневого' : 'промежуточного'} сертификата: источник, отпечатки, Subject/Issuer, CA и срок действия.');
       final info = await _certificateManager.inspect(kind);
       final status = info.currentUserInstalled
           ? 'Установлен: CurrentUser'
@@ -420,7 +425,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       _log('Issuer: ${info.issuer}');
       _log('SHA-1: ${info.thumbprint}; SHA-256: ${info.sha256}');
       _log('Срок действия: ${info.notBefore} - ${info.notAfter}');
-      _log('Windows stores: CurrentUser=${info.currentUserInstalled}, LocalMachine=${info.localMachineInstalled}.');
+      _log(
+          'Windows stores: CurrentUser=${info.currentUserInstalled}, LocalMachine=${info.localMachineInstalled}.');
     } catch (error) {
       _log('Ошибка проверки сертификата: ${_safeError(error)}');
       if (mounted) {
@@ -445,7 +451,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     try {
       final info = await _certificateManager.inspect(kind);
       if (info.currentUserInstalled) {
-        _log('Сертификат уже установлен в CurrentUser. Повторная установка не требуется.');
+        _log(
+            'Сертификат уже установлен в CurrentUser. Повторная установка не требуется.');
       } else if (await _confirmCertificateInstall(kind, info)) {
         await _certificateManager.install(kind);
         shouldRetestTls = true;
@@ -453,7 +460,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
             ? 'Russian Trusted Root CA установлен в CurrentUser\\Root.'
             : 'Russian Trusted Sub CA 2024 установлен в CurrentUser\\CA.');
         if (info.localMachineInstalled) {
-          _log('Сертификат также присутствует в LocalMachine; установка для текущего пользователя выполнена отдельно.');
+          _log(
+              'Сертификат также присутствует в LocalMachine; установка для текущего пользователя выполнена отдельно.');
         }
       } else {
         _log('Установка отменена. Хранилище Windows не изменено.');
@@ -504,9 +512,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       _log(usePinnedRoot
           ? 'TLS-проверка api2.oneme.ru:443 через TLS-контекст MaxAI с закреплённым корневым сертификатом.'
           : 'TLS-проверка api2.oneme.ru:443 через стандартный TLS-контекст Dart без дополнительных сертификатов.');
-      final tlsContext = usePinnedRoot
-          ? await _certificateManager.createTlsContext()
-          : null;
+      final tlsContext =
+          usePinnedRoot ? await _certificateManager.createTlsContext() : null;
       socket = await SecureSocket.connect(
         'api2.oneme.ru',
         443,
@@ -530,7 +537,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
         });
       }
     } catch (error) {
-      _log('TLS-проверка ${usePinnedRoot ? 'MaxAI' : 'Windows'} не пройдена: ${_safeError(error)}');
+      _log(
+          'TLS-проверка ${usePinnedRoot ? 'MaxAI' : 'Windows'} не пройдена: ${_safeError(error)}');
       if (mounted) {
         setState(() {
           if (usePinnedRoot) {
@@ -573,16 +581,16 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       }
 
       final deviceId = await _loadOrCreateDeviceId();
-      final userAgent = useSms
-          ? _createMobileUserAgent()
-          : _createWebUserAgent();
+      final userAgent =
+          useSms ? _createMobileUserAgent() : _createWebUserAgent();
       final fingerprintProvider =
           useSms ? _createMobileFingerprintProvider() : null;
       final frameCodec = const TcpFrameCodec(
         payloadCodec: MessagePackPayloadCodec(),
       );
-      final SecurityContext? tlsContext =
-          useSms && Platform.isWindows ? await _prepareWindowsTlsContext() : null;
+      final SecurityContext? tlsContext = useSms && Platform.isWindows
+          ? await _prepareWindowsTlsContext()
+          : null;
       final ProtocolTransport transport = useSms
           ? TcpSocketTransport(
               host: 'api2.oneme.ru',
@@ -665,7 +673,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
           deviceId: deviceId,
         );
       }
-      _log('SESSION_INIT успешно завершён. callsSeed: ${handshake.callsSeed == null ? "не получен" : "получен"}.');
+      _log(
+          'SESSION_INIT успешно завершён. callsSeed: ${handshake.callsSeed == null ? "не получен" : "получен"}.');
       final auth = AuthManager(
         connection: connection,
         sessionManager: session,
@@ -679,7 +688,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       final savedToken = await WindowsDpapiStorage.read(key: _tokenStorageKey);
       if (useSms) {
         if (savedToken != null && savedToken.isNotEmpty) {
-          _log('Сохранённый мобильный токен найден. Выполняем LOGIN через TCP (opcode 19).');
+          _log(
+              'Сохранённый мобильный токен найден. Выполняем LOGIN через TCP (opcode 19).');
           try {
             final login = LoginManager(
               connection: connection,
@@ -719,7 +729,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       }
 
       if (savedToken != null && savedToken.isNotEmpty) {
-        _log('Сохранённый токен найден. Выполняем восстановительный LOGIN (opcode 19).');
+        _log(
+            'Сохранённый токен найден. Выполняем восстановительный LOGIN (opcode 19).');
         try {
           final login = LoginManager(
             connection: connection,
@@ -742,7 +753,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
           await WindowsDpapiStorage.delete(
             key: _authMethodStorageKey,
           );
-          _log('Сервер отклонил сохранённый токен. Он удалён, потребуется новая QR-авторизация.');
+          _log(
+              'Сервер отклонил сохранённый токен. Он удалён, потребуется новая QR-авторизация.');
         }
       }
 
@@ -767,7 +779,6 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       await _closeConnection();
     }
   }
-
 
   Future<void> _connectAndStartSms() async {
     if (_loginComplete) {
@@ -819,7 +830,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     if (authResult.stage == AuthStage.passwordRequired) {
       final challenge = authResult.challenge;
       if (challenge == null) {
-        throw StateError('MAX запросил 2FA, но не передал данные passwordChallenge.');
+        throw StateError(
+            'MAX запросил 2FA, но не передал данные passwordChallenge.');
       }
 
       _log('SMS-код принят. MAX требует пароль двухфакторной аутентификации.');
@@ -875,7 +887,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       key: _authMethodStorageKey,
       value: 'mobile',
     );
-    _log('Мобильный токен авторизации сохранён в зашифрованном хранилище Windows DPAPI.');
+    _log(
+        'Мобильный токен авторизации сохранён в зашифрованном хранилище Windows DPAPI.');
     _applyLoginResult(result);
   }
 
@@ -904,12 +917,14 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
             _log('Срок действия QR-кода истёк.');
             setState(() {
               _status = 'QR-код истёк';
-              _busy = false;            });
+              _busy = false;
+            });
             return;
           }
 
           final status = await auth.checkQrLogin(qr.trackId);
-          _log('Проверка QR: ${status.loginAvailable == true ? "подтверждён" : "ожидает подтверждения"}.');
+          _log(
+              'Проверка QR: ${status.loginAvailable == true ? "подтверждён" : "ожидает подтверждения"}.');
           if (status.loginAvailable == true) {
             _pollTimer?.cancel();
             await _completeQrLogin(auth, qr, userAgent, deviceId);
@@ -951,7 +966,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     if (authResult.stage == AuthStage.passwordRequired) {
       final challenge = authResult.challenge;
       if (challenge == null) {
-        throw StateError('MAX запросил 2FA, но не передал данные passwordChallenge.');
+        throw StateError(
+            'MAX запросил 2FA, но не передал данные passwordChallenge.');
       }
 
       _log('QR подтверждён. MAX требует пароль двухфакторной аутентификации.');
@@ -1007,7 +1023,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       key: _authMethodStorageKey,
       value: 'web',
     );
-    _log('Web-токен авторизации сохранён в зашифрованном хранилище Windows DPAPI.');
+    _log(
+        'Web-токен авторизации сохранён в зашифрованном хранилище Windows DPAPI.');
     _applyLoginResult(result);
   }
 
@@ -1033,16 +1050,19 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       _apiMessageIdsController.clear();
     });
 
-    _log('LOGIN завершён. Чатов: ${result.login.chats.length}; контактов: ${result.contacts.length}; сообщений в начальном ответе: ${result.login.messages.length}.');
+    _log(
+        'LOGIN завершён. Чатов: ${result.login.chats.length}; контактов: ${result.contacts.length}; сообщений в начальном ответе: ${result.login.messages.length}.');
     if (flags != null) {
-      _log('Флаги LOGIN2: config=${flags.configEnabled}, contacts=${flags.contactEnabled}, profile=${flags.profileEnabled}.');
+      _log(
+          'Флаги LOGIN2: config=${flags.configEnabled}, contacts=${flags.contactEnabled}, profile=${flags.profileEnabled}.');
     } else {
       _log('Сервер не передал login2Flags. LOGIN2 не выполнялся.');
     }
     if (result.login2 != null) {
       _log('LOGIN2 завершён успешно.');
     }
-    _log('Восстановление/проверка авторизации завершены. Токен хранится в защищённом хранилище.');
+    _log(
+        'Восстановление/проверка авторизации завершены. Токен хранится в защищённом хранилище.');
   }
 
   String _summarizeProfile(MaxUserProfile profile) {
@@ -1062,12 +1082,14 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     return text.length > 500 ? text.substring(0, 500) : text;
   }
 
-
   Future<void> _runApiCheck(
     String label,
     Future<String> Function() operation,
   ) async {
-    if (_apiBusy || _busy || !_loginComplete || _connection?.isConnected != true) {
+    if (_apiBusy ||
+        _busy ||
+        !_loginComplete ||
+        _connection?.isConnected != true) {
       return;
     }
     setState(() => _apiBusy = true);
@@ -1076,10 +1098,12 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     try {
       final result = await operation();
       stopwatch.stop();
-      _log('API Probe: $label завершён за ${stopwatch.elapsedMilliseconds} мс. $result');
+      _log(
+          'API Probe: $label завершён за ${stopwatch.elapsedMilliseconds} мс. $result');
     } catch (error) {
       stopwatch.stop();
-      _log('API Probe: $label завершился ошибкой за ${stopwatch.elapsedMilliseconds} мс: ${_safeError(error)}');
+      _log(
+          'API Probe: $label завершился ошибкой за ${stopwatch.elapsedMilliseconds} мс: ${_safeError(error)}');
     } finally {
       if (mounted) setState(() => _apiBusy = false);
     }
@@ -1182,12 +1206,13 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     return 'CHAT_HISTORY вернул сообщений: ${messages.length}; распознано Message ID: ${messageIds.length}. ID автоматически заполнены для MSG_GET. Поля записи: $fields. Текст сообщений не выводится в журнал.';
   }
 
-
   int? _recordId(Map<String, Object?> record, List<String> keys) {
     for (final key in keys) {
       final value = record[key];
       if (value is int && value > 0) return value;
-      if (value is num && value.isFinite && value > 0 &&
+      if (value is num &&
+          value.isFinite &&
+          value > 0 &&
           value == value.roundToDouble()) {
         return value.toInt();
       }
@@ -1210,7 +1235,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
         .map(int.tryParse)
         .toList(growable: false);
     if (messageIds.isEmpty || messageIds.any((id) => id == null || id <= 0)) {
-      throw const FormatException('Укажи один или несколько положительных Message ID через запятую.');
+      throw const FormatException(
+          'Укажи один или несколько положительных Message ID через запятую.');
     }
     final messages = await _createReadOnlyApi().getMessages(
       chatId: chatId,
@@ -1264,8 +1290,10 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
         _profileSummary = null;
         _status = 'Выполнен выход';
       });
-      _log('Выход выполнен. Сохранённый токен удалён; идентификатор устройства сохранён.');
-    } catch (error) {      if (!mounted) return;
+      _log(
+          'Выход выполнен. Сохранённый токен удалён; идентификатор устройства сохранён.');
+    } catch (error) {
+      if (!mounted) return;
       setState(() {
         _busy = false;
         _error = _safeError(error);
@@ -1296,7 +1324,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
           Expanded(child: Text(label)),
           const SizedBox(width: 12),
           Flexible(
-            child: Text(status, textAlign: TextAlign.end,
+            child: Text(status,
+                textAlign: TextAlign.end,
                 style: Theme.of(context).textTheme.bodySmall),
           ),
         ],
@@ -1349,405 +1378,492 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                            Card(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Подключение WebSocket + QR',
-                                          style: Theme.of(context).textTheme.titleMedium),
-                                      const SizedBox(height: 12),
-                                      TextField(
-                                        controller: _uriController,
-                                        enabled: !_busy,
-                                        decoration: const InputDecoration(
-                                          labelText: 'WebSocket URL',
-                                          border: OutlineInputBorder(),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 10),
-                                      TextField(
-                                        controller: _timezoneController,
-                                        enabled: !_busy,
-                                        decoration: const InputDecoration(
-                                          labelText: 'Часовой пояс',
-                                          hintText: 'Например, Europe/Helsinki',
-                                          border: OutlineInputBorder(),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 10),
-                                      TextField(
-                                        controller: _phoneController,
-                                        enabled: !_busy,
-                                        keyboardType: TextInputType.phone,
-                                        decoration: const InputDecoration(
-                                          labelText: 'Номер телефона для SMS-входа',
-                                          hintText: '+358...',
-                                          border: OutlineInputBorder(),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 12),
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text('Диагностика TLS и сертификатов Windows',
-                                              style: Theme.of(context).textTheme.titleSmall),
-                                          const SizedBox(height: 8),
-                                          _certificateStatusRow('Russian Trusted Root CA', _rootCertificateStatus),
-                                          _certificateStatusRow('Russian Trusted Sub CA 2024', _intermediateCertificateStatus),
-                                          _certificateStatusRow('TLS стандартный контекст', _windowsTlsStatus),
-                                          _certificateStatusRow('TLS MaxAI / pinned Root', _maxAiTlsStatus),
-                                          const SizedBox(height: 10),
-                                          Wrap(
-                                            spacing: 8,
-                                            runSpacing: 8,
-                                            children: [
-                                              OutlinedButton.icon(
-                                                onPressed: _busy || _certificateBusy ? null : () => _runCertificateCheck(WindowsCertificateKind.root),
-                                                icon: const Icon(Icons.search),
-                                                label: const Text('Проверить Root'),
-                                              ),
-                                              OutlinedButton.icon(
-                                                onPressed: _busy || _certificateBusy ? null : () => _runCertificateCheck(WindowsCertificateKind.intermediate),
-                                                icon: const Icon(Icons.search),
-                                                label: const Text('Проверить Sub CA'),
-                                              ),
-                                              FilledButton.tonalIcon(
-                                                onPressed: _busy || _certificateBusy ? null : () => _installCertificate(WindowsCertificateKind.root),
-                                                icon: const Icon(Icons.download),
-                                                label: const Text('Установить Root'),
-                                              ),
-                                              FilledButton.tonalIcon(
-                                                onPressed: _busy || _certificateBusy ? null : () => _installCertificate(WindowsCertificateKind.intermediate),
-                                                icon: const Icon(Icons.download),
-                                                label: const Text('Установить Sub CA'),
-                                              ),
-                                              OutlinedButton.icon(
-                                                onPressed: _busy || _certificateBusy
-                                                    ? null
-                                                    : () => _checkApiTls(usePinnedRoot: false),
-                                                icon: const Icon(Icons.shield_outlined),
-                                                label: const Text('TLS: Default'),
-                                              ),
-                                              OutlinedButton.icon(
-                                                onPressed: _busy || _certificateBusy
-                                                    ? null
-                                                    : () => _checkApiTls(usePinnedRoot: true),
-                                                icon: _certificateBusy
-                                                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                                                    : const Icon(Icons.verified_user_outlined),
-                                                label: const Text('TLS: MaxAI'),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 14),
-                                      Wrap(
-                                        spacing: 10,
-                                        runSpacing: 8,
-                                        children: [
-                                          FilledButton.icon(
-                                            onPressed: _busy || _apiBusy ? null : _connectAndStartQr,
-                                            icon: const Icon(Icons.qr_code),
-                                            label: const Text('Подключиться / восстановить авторизацию'),
-                                          ),
-                                          OutlinedButton.icon(
-                                            onPressed: _busy || _apiBusy || _loginComplete
-                                                ? null
-                                                : _connectAndStartSms,
-                                            icon: const Icon(Icons.sms_outlined),
-                                            label: const Text('Войти по SMS'),
-                                          ),
-                                          OutlinedButton.icon(
-                                            onPressed: _connected || _busy ? _stop : null,
-                                            icon: const Icon(Icons.stop),
-                                            label: const Text('Остановить'),
-                                          ),
-                                          if (_loginComplete)
-                                            OutlinedButton.icon(
-                                              onPressed: _busy || _apiBusy ? null : _logout,
-                                              icon: const Icon(Icons.logout),
-                                              label: const Text('Выйти из аккаунта'),
-                                            ),
-                                        ],
-                                      ),
-                                    ],
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Подключение WebSocket + QR',
+                                style: Theme.of(context).textTheme.titleMedium),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: _uriController,
+                              enabled: !_busy,
+                              decoration: const InputDecoration(
+                                labelText: 'WebSocket URL',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            TextField(
+                              controller: _timezoneController,
+                              enabled: !_busy,
+                              decoration: const InputDecoration(
+                                labelText: 'Часовой пояс',
+                                hintText: 'Например, Europe/Helsinki',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            TextField(
+                              controller: _phoneController,
+                              enabled: !_busy,
+                              keyboardType: TextInputType.phone,
+                              decoration: const InputDecoration(
+                                labelText: 'Номер телефона для SMS-входа',
+                                hintText: '+358...',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Диагностика TLS и сертификатов Windows',
+                                    style:
+                                        Theme.of(context).textTheme.titleSmall),
+                                const SizedBox(height: 8),
+                                _certificateStatusRow('Russian Trusted Root CA',
+                                    _rootCertificateStatus),
+                                _certificateStatusRow(
+                                    'Russian Trusted Sub CA 2024',
+                                    _intermediateCertificateStatus),
+                                _certificateStatusRow(
+                                    'TLS стандартный контекст',
+                                    _windowsTlsStatus),
+                                _certificateStatusRow(
+                                    'TLS MaxAI / pinned Root', _maxAiTlsStatus),
+                                const SizedBox(height: 10),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    OutlinedButton.icon(
+                                      onPressed: _busy || _certificateBusy
+                                          ? null
+                                          : () => _runCertificateCheck(
+                                              WindowsCertificateKind.root),
+                                      icon: const Icon(Icons.search),
+                                      label: const Text('Проверить Root'),
+                                    ),
+                                    OutlinedButton.icon(
+                                      onPressed: _busy || _certificateBusy
+                                          ? null
+                                          : () => _runCertificateCheck(
+                                              WindowsCertificateKind
+                                                  .intermediate),
+                                      icon: const Icon(Icons.search),
+                                      label: const Text('Проверить Sub CA'),
+                                    ),
+                                    FilledButton.tonalIcon(
+                                      onPressed: _busy || _certificateBusy
+                                          ? null
+                                          : () => _installCertificate(
+                                              WindowsCertificateKind.root),
+                                      icon: const Icon(Icons.download),
+                                      label: const Text('Установить Root'),
+                                    ),
+                                    FilledButton.tonalIcon(
+                                      onPressed: _busy || _certificateBusy
+                                          ? null
+                                          : () => _installCertificate(
+                                              WindowsCertificateKind
+                                                  .intermediate),
+                                      icon: const Icon(Icons.download),
+                                      label: const Text('Установить Sub CA'),
+                                    ),
+                                    OutlinedButton.icon(
+                                      onPressed: _busy || _certificateBusy
+                                          ? null
+                                          : () => _checkApiTls(
+                                              usePinnedRoot: false),
+                                      icon: const Icon(Icons.shield_outlined),
+                                      label: const Text('TLS: Default'),
+                                    ),
+                                    OutlinedButton.icon(
+                                      onPressed: _busy || _certificateBusy
+                                          ? null
+                                          : () =>
+                                              _checkApiTls(usePinnedRoot: true),
+                                      icon: _certificateBusy
+                                          ? const SizedBox(
+                                              width: 16,
+                                              height: 16,
+                                              child: CircularProgressIndicator(
+                                                  strokeWidth: 2))
+                                          : const Icon(
+                                              Icons.verified_user_outlined),
+                                      label: const Text('TLS: MaxAI'),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            Wrap(
+                              spacing: 10,
+                              runSpacing: 8,
+                              children: [
+                                FilledButton.icon(
+                                  onPressed: _busy || _apiBusy
+                                      ? null
+                                      : _connectAndStartQr,
+                                  icon: const Icon(Icons.qr_code),
+                                  label: const Text(
+                                      'Подключиться / восстановить авторизацию'),
+                                ),
+                                OutlinedButton.icon(
+                                  onPressed: _busy || _apiBusy || _loginComplete
+                                      ? null
+                                      : _connectAndStartSms,
+                                  icon: const Icon(Icons.sms_outlined),
+                                  label: const Text('Войти по SMS'),
+                                ),
+                                OutlinedButton.icon(
+                                  onPressed: _connected || _busy ? _stop : null,
+                                  icon: const Icon(Icons.stop),
+                                  label: const Text('Остановить'),
+                                ),
+                                if (_loginComplete)
+                                  OutlinedButton.icon(
+                                    onPressed:
+                                        _busy || _apiBusy ? null : _logout,
+                                    icon: const Icon(Icons.logout),
+                                    label: const Text('Выйти из аккаунта'),
                                   ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (_loginComplete) ...[
+                      const SizedBox(height: 12),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Read-only API Probe',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 6),
+                              const Text(
+                                'Безопасные проверки чтения. Профиль и список контактов берутся из LOGIN; остальные операции отправляют отдельные запросы.',
+                              ),
+                              const SizedBox(height: 12),
+                              TextField(
+                                controller: _apiContactIdController,
+                                enabled: !_apiBusy,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                  labelText: 'Contact ID',
+                                  border: OutlineInputBorder(),
                                 ),
                               ),
-
-                              if (_loginComplete) ...[
-                                const SizedBox(height: 12),
-                                Card(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Read-only API Probe',
-                                          style: Theme.of(context).textTheme.titleMedium,
-                                        ),
-                                        const SizedBox(height: 6),
-                                        const Text(
-                                          'Безопасные проверки чтения. Профиль и список контактов берутся из LOGIN; остальные операции отправляют отдельные запросы.',
-                                        ),
-                                        const SizedBox(height: 12),
-                                        TextField(
-                                          controller: _apiContactIdController,
-                                          enabled: !_apiBusy,
-                                          keyboardType: TextInputType.number,
-                                          decoration: const InputDecoration(
-                                            labelText: 'Contact ID',
-                                            border: OutlineInputBorder(),
-                                          ),
-                                        ),
-                                        if (apiContactIds.isNotEmpty) ...[
-                                          const SizedBox(height: 8),
-                                          DropdownButtonFormField<int>(
-                                            initialValue: apiContactIds.contains(int.tryParse(_apiContactIdController.text))
-                                                ? int.tryParse(_apiContactIdController.text)
-                                                : null,
-                                            decoration: const InputDecoration(
-                                              labelText: 'Контакт из LOGIN snapshot',
-                                              border: OutlineInputBorder(),
-                                            ),
-                                            items: apiContactIds.map((id) => DropdownMenuItem<int>(
-                                              value: id,
-                                              child: Text('Contact $id'),
-                                            )).toList(),
-                                            onChanged: _apiBusy ? null : (id) {
-                                              if (id != null) setState(() => _apiContactIdController.text = id.toString());
-                                            },
-                                          ),
-                                        ],
-                                        const SizedBox(height: 8),
-                                        TextField(
-                                          controller: _apiChatIdController,
-                                          enabled: !_apiBusy,
-                                          keyboardType: TextInputType.number,
-                                          decoration: const InputDecoration(
-                                            labelText: 'Chat ID',
-                                            border: OutlineInputBorder(),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        TextField(
-                                          controller: _apiMessageIdsController,
-                                          enabled: !_apiBusy,
-                                          keyboardType: TextInputType.text,
-                                          decoration: const InputDecoration(
-                                            labelText: 'Message ID (через запятую)',
-                                            border: OutlineInputBorder(),
-                                          ),
-                                        ),
-                                        if (apiChatIds.isNotEmpty) ...[
-                                          const SizedBox(height: 8),
-                                          DropdownButtonFormField<int>(
-                                            key: ValueKey('chat-ids-${apiChatIds.join(',')}'),
-                                            initialValue: apiChatIds.contains(int.tryParse(_apiChatIdController.text))
-                                                ? int.tryParse(_apiChatIdController.text)
-                                                : null,
-                                            decoration: const InputDecoration(
-                                              labelText: 'Чат из последнего списка',
-                                              border: OutlineInputBorder(),
-                                            ),
-                                            items: apiChatIds.map((id) {
-                                              final chat = _lastApiChats.firstWhere(
-                                                (item) => _recordId(item, const ['id', 'chatId']) == id,
-                                              );
-                                              final title = chat['title'] ?? chat['name'] ?? chat['chatName'];
-                                              final label = title is String && title.trim().isNotEmpty
-                                                  ? title.trim()
-                                                  : 'Чат';
-                                              return DropdownMenuItem<int>(
-                                                value: id,
-                                                child: Text('$label (ID: $id)', overflow: TextOverflow.ellipsis),
-                                              );
-                                            }).toList(),
-                                            onChanged: _apiBusy ? null : (id) {
-                                              if (id != null) setState(() => _apiChatIdController.text = id.toString());
-                                            },
-                                          ),
-                                        ],
-                                        const SizedBox(height: 10),
-                                        Wrap(
-                                          spacing: 8,
-                                          runSpacing: 8,
-                                          children: [
-                                            OutlinedButton(
-                                              onPressed: _apiBusy ? null : () => _runApiCheck('PROFILE snapshot', _probeProfileSnapshot),
-                                              child: const Text('Профиль из LOGIN'),
-                                            ),
-                                            OutlinedButton(
-                                              onPressed: _apiBusy ? null : () => _runApiCheck('CONTACTS snapshot', _probeContactsSnapshot),
-                                              child: const Text('Контакты из LOGIN'),
-                                            ),
-                                            OutlinedButton(
-                                              onPressed: _apiBusy ? null : () => _runApiCheck('CONTACT_INFO (32)', _probeContactInfo),
-                                              child: const Text('Информация о контакте'),
-                                            ),
-                                            OutlinedButton(
-                                              onPressed: _apiBusy ? null : () => _runApiCheck('CHATS_LIST (53)', _probeChatsList),
-                                              child: const Text('Список чатов'),
-                                            ),
-                                            OutlinedButton(
-                                              onPressed: _apiBusy ? null : () => _runApiCheck('CHAT_INFO (48)', _probeChatInfo),
-                                              child: const Text('Информация о чате'),
-                                            ),
-                                            OutlinedButton(
-                                              onPressed: _apiBusy ? null : () => _runApiCheck('CHAT_MEMBERS (59)', _probeChatMembers),
-                                              child: const Text('Участники чата'),
-                                            ),
-                                            OutlinedButton(
-                                              onPressed: _apiBusy ? null : () => _runApiCheck('CHAT_HISTORY (49)', _probeChatHistory),
-                                              child: const Text('История сообщений'),
-                                            ),
-                                            OutlinedButton(
-                                              onPressed: _apiBusy ? null : () => _runApiCheck('MSG_GET (71)', _probeMessagesById),
-                                              child: const Text('Получить сообщения по ID'),
-                                            ),
-                                          ],
-                                        ),
-                                        if (_apiBusy) ...[
-                                          const SizedBox(height: 10),
-                                          const LinearProgressIndicator(),
-                                        ],
-                                        if (_lastApiChats.isNotEmpty) ...[
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            'Получено чатов: ${_lastApiChats.length}; доступно для выбора: ${apiChatIds.length}. Выбери чат из списка выше, его ID подставится автоматически.',
-                                            style: Theme.of(context).textTheme.bodySmall,
-                                          ),
-                                        ],
-                                        if (_lastApiMessages.isNotEmpty) ...[
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            'Последняя история: ${_lastApiMessages.length} сообщений; найдено ID: ${_apiMessageIdsController.text.isEmpty ? 0 : _apiMessageIdsController.text.split(',').length}. ID подставлены в поле MSG_GET.',
-                                            style: Theme.of(context).textTheme.bodySmall,
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                              if (qr != null) ...[
-                                const SizedBox(height: 12),
-                                Card(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                      children: [
-                                        QrImageView(
-                                          data: qr.qrLink,
-                                          size: 210,
-                                          backgroundColor: Colors.white,
-                                        ),
-                                        const SizedBox(width: 20),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text('Отсканируй QR в приложении MAX',
-                                                  style: Theme.of(context).textTheme.titleMedium),
-                                              const SizedBox(height: 8),
-                                              const Text(
-                                                'Оставь это окно открытым. Приложение автоматически проверяет подтверждение QR и после него выполняет LOGIN.',
-                                              ),
-                                              const SizedBox(height: 8),
-                                              SelectableText(
-                                                'Действителен до: ${qr.expiresAtDateTime.toLocal()}',
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                              if (_error != null) ...[
+                              if (apiContactIds.isNotEmpty) ...[
                                 const SizedBox(height: 8),
-                                Material(
-                                  color: Theme.of(context).colorScheme.errorContainer,
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(12),
-                                    child: Text(_error!),
+                                DropdownButtonFormField<int>(
+                                  initialValue: apiContactIds.contains(
+                                          int.tryParse(
+                                              _apiContactIdController.text))
+                                      ? int.tryParse(
+                                          _apiContactIdController.text)
+                                      : null,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Контакт из LOGIN snapshot',
+                                    border: OutlineInputBorder(),
                                   ),
+                                  items: apiContactIds
+                                      .map((id) => DropdownMenuItem<int>(
+                                            value: id,
+                                            child: Text('Contact $id'),
+                                          ))
+                                      .toList(),
+                                  onChanged: _apiBusy
+                                      ? null
+                                      : (id) {
+                                          if (id != null)
+                                            setState(() =>
+                                                _apiContactIdController.text =
+                                                    id.toString());
+                                        },
                                 ),
                               ],
-                              if (_profileSummary != null) ...[
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: _apiChatIdController,
+                                enabled: !_apiBusy,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                  labelText: 'Chat ID',
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: _apiMessageIdsController,
+                                enabled: !_apiBusy,
+                                keyboardType: TextInputType.text,
+                                decoration: const InputDecoration(
+                                  labelText: 'Message ID (через запятую)',
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
+                              if (apiChatIds.isNotEmpty) ...[
                                 const SizedBox(height: 8),
-                                Card(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(14),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text('Результат', style: Theme.of(context).textTheme.titleMedium),
-                                        const SizedBox(height: 6),
-                                        Text(_profileSummary!),
-                                        if (_authenticatedSession != null) ...[
-                                          const SizedBox(height: 8),
-                                          const Text(
-                                            'Токен авторизации сохранён в зашифрованном хранилище Windows DPAPI '
-                                            'и будет использован при следующем запуске.',
-                                          ),
-                                        ],
-                                      ],
-                                    ),
+                                DropdownButtonFormField<int>(
+                                  key: ValueKey(
+                                      'chat-ids-${apiChatIds.join(',')}'),
+                                  initialValue: apiChatIds.contains(
+                                          int.tryParse(
+                                              _apiChatIdController.text))
+                                      ? int.tryParse(_apiChatIdController.text)
+                                      : null,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Чат из последнего списка',
+                                    border: OutlineInputBorder(),
                                   ),
+                                  items: apiChatIds.map((id) {
+                                    final chat = _lastApiChats.firstWhere(
+                                      (item) =>
+                                          _recordId(
+                                              item, const ['id', 'chatId']) ==
+                                          id,
+                                    );
+                                    final title = chat['title'] ??
+                                        chat['name'] ??
+                                        chat['chatName'];
+                                    final label = title is String &&
+                                            title.trim().isNotEmpty
+                                        ? title.trim()
+                                        : 'Чат';
+                                    return DropdownMenuItem<int>(
+                                      value: id,
+                                      child: Text('$label (ID: $id)',
+                                          overflow: TextOverflow.ellipsis),
+                                    );
+                                  }).toList(),
+                                  onChanged: _apiBusy
+                                      ? null
+                                      : (id) {
+                                          if (id != null)
+                                            setState(() => _apiChatIdController
+                                                .text = id.toString());
+                                        },
                                 ),
                               ],
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 10),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  OutlinedButton(
+                                    onPressed: _apiBusy
+                                        ? null
+                                        : () => _runApiCheck('PROFILE snapshot',
+                                            _probeProfileSnapshot),
+                                    child: const Text('Профиль из LOGIN'),
+                                  ),
+                                  OutlinedButton(
+                                    onPressed: _apiBusy
+                                        ? null
+                                        : () => _runApiCheck(
+                                            'CONTACTS snapshot',
+                                            _probeContactsSnapshot),
+                                    child: const Text('Контакты из LOGIN'),
+                                  ),
+                                  OutlinedButton(
+                                    onPressed: _apiBusy
+                                        ? null
+                                        : () => _runApiCheck(
+                                            'CONTACT_INFO (32)',
+                                            _probeContactInfo),
+                                    child: const Text('Информация о контакте'),
+                                  ),
+                                  OutlinedButton(
+                                    onPressed: _apiBusy
+                                        ? null
+                                        : () => _runApiCheck(
+                                            'CHATS_LIST (53)', _probeChatsList),
+                                    child: const Text('Список чатов'),
+                                  ),
+                                  OutlinedButton(
+                                    onPressed: _apiBusy
+                                        ? null
+                                        : () => _runApiCheck(
+                                            'CHAT_INFO (48)', _probeChatInfo),
+                                    child: const Text('Информация о чате'),
+                                  ),
+                                  OutlinedButton(
+                                    onPressed: _apiBusy
+                                        ? null
+                                        : () => _runApiCheck(
+                                            'CHAT_MEMBERS (59)',
+                                            _probeChatMembers),
+                                    child: const Text('Участники чата'),
+                                  ),
+                                  OutlinedButton(
+                                    onPressed: _apiBusy
+                                        ? null
+                                        : () => _runApiCheck(
+                                            'CHAT_HISTORY (49)',
+                                            _probeChatHistory),
+                                    child: const Text('История сообщений'),
+                                  ),
+                                  OutlinedButton(
+                                    onPressed: _apiBusy
+                                        ? null
+                                        : () => _runApiCheck(
+                                            'MSG_GET (71)', _probeMessagesById),
+                                    child:
+                                        const Text('Получить сообщения по ID'),
+                                  ),
+                                ],
+                              ),
+                              if (_apiBusy) ...[
+                                const SizedBox(height: 10),
+                                const LinearProgressIndicator(),
+                              ],
+                              if (_lastApiChats.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Получено чатов: ${_lastApiChats.length}; доступно для выбора: ${apiChatIds.length}. Выбери чат из списка выше, его ID подставится автоматически.',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ],
+                              if (_lastApiMessages.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Последняя история: ${_lastApiMessages.length} сообщений; найдено ID: ${_apiMessageIdsController.text.isEmpty ? 0 : _apiMessageIdsController.text.split(',').length}. ID подставлены в поле MSG_GET.',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (qr != null) ...[
+                      const SizedBox(height: 12),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              QrImageView(
+                                data: qr.qrLink,
+                                size: 210,
+                                backgroundColor: Colors.white,
+                              ),
+                              const SizedBox(width: 20),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Отсканируй QR в приложении MAX',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium),
+                                    const SizedBox(height: 8),
+                                    const Text(
+                                      'Оставь это окно открытым. Приложение автоматически проверяет подтверждение QR и после него выполняет LOGIN.',
+                                    ),
+                                    const SizedBox(height: 8),
+                                    SelectableText(
+                                      'Действителен до: ${qr.expiresAtDateTime.toLocal()}',
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (_error != null) ...[
+                      const SizedBox(height: 8),
+                      Material(
+                        color: Theme.of(context).colorScheme.errorContainer,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Text(_error!),
+                        ),
+                      ),
+                    ],
+                    if (_profileSummary != null) ...[
+                      const SizedBox(height: 8),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Результат',
+                                  style:
+                                      Theme.of(context).textTheme.titleMedium),
+                              const SizedBox(height: 6),
+                              Text(_profileSummary!),
+                              if (_authenticatedSession != null) ...[
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'Токен авторизации сохранён в зашифрованном хранилище Windows DPAPI '
+                                  'и будет использован при следующем запуске.',
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Text('Журнал проверки',
-                                style: Theme.of(context).textTheme.titleMedium),
-                            const Spacer(),
-                            TextButton(
-                              onPressed: _logs.isEmpty
-                                  ? null
-                                  : () => setState(_logs.clear),
-                              child: const Text('Очистить'),
+            Row(
+              children: [
+                Text('Журнал проверки',
+                    style: Theme.of(context).textTheme.titleMedium),
+                const Spacer(),
+                TextButton(
+                  onPressed: _logs.isEmpty ? null : () => setState(_logs.clear),
+                  child: const Text('Очистить'),
+                ),
+              ],
+            ),
+            Expanded(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: _logs.isEmpty
+                    ? const Center(
+                        child: Text('Здесь появятся этапы проверки.'))
+                    : ListView.builder(
+                        reverse: true,
+                        padding: const EdgeInsets.all(12),
+                        itemCount: _logs.length,
+                        itemBuilder: (context, index) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 3),
+                          child: SelectableText(
+                            _logs[index],
+                            style: const TextStyle(
+                              fontFamily: 'Consolas',
+                              fontSize: 12,
                             ),
-                          ],
-                        ),
-                        Expanded(
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: _logs.isEmpty
-                                ? const Center(child: Text('Здесь появятся этапы проверки.'))
-                                : ListView.builder(
-                                    reverse: true,
-                                    padding: const EdgeInsets.all(12),
-                                    itemCount: _logs.length,
-                                    itemBuilder: (context, index) => Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 3),
-                                      child: SelectableText(
-                                        _logs[index],
-                                        style: const TextStyle(
-                                          fontFamily: 'Consolas',
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
                           ),
                         ),
+                      ),
+              ),
+            ),
           ],
         ),
       ),

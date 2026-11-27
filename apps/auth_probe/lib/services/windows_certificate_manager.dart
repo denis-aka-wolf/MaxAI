@@ -125,7 +125,8 @@ final class WindowsCertificateManager {
     }
     final verified = await _readStorePresence(kind);
     if (!verified.currentUser) {
-      throw StateError('Windows не подтвердила установку сертификата в CurrentUser\\$store.');
+      throw StateError(
+          'Windows не подтвердила установку сертификата в CurrentUser\\$store.');
     }
   }
 
@@ -136,7 +137,8 @@ final class WindowsCertificateManager {
 
   void _requireWindows() {
     if (!Platform.isWindows) {
-      throw UnsupportedError('Проверка сертификатов доступна только в Windows.');
+      throw UnsupportedError(
+          'Проверка сертификатов доступна только в Windows.');
     }
   }
 
@@ -228,7 +230,8 @@ final class WindowsCertificateManager {
         final archive = ZipDecoder().decodeBytes(downloaded);
         final matches = archive.files.where((entry) =>
             entry.isFile &&
-            entry.name.split('/').last == 'russian_trusted_sub_ca_2024_pem.crt');
+            entry.name.split('/').last ==
+                'russian_trusted_sub_ca_2024_pem.crt');
         if (matches.length != 1) {
           throw const FormatException(
             'В официальном архиве не найден единственный сертификат Sub CA 2024.',
@@ -264,8 +267,7 @@ final class WindowsCertificateManager {
       final der = base64.decode(
         match.group(1)!.replaceAll(RegExp(r'\s'), ''),
       );
-      return sha1.convert(der).toString().toUpperCase() ==
-              _thumbprint(kind) &&
+      return sha1.convert(der).toString().toUpperCase() == _thumbprint(kind) &&
           sha256.convert(der).toString().toUpperCase() == _sha256(kind);
     } catch (_) {
       return false;
@@ -297,7 +299,8 @@ if ($target.Subject -ne $target.Issuer -and $target.Issuer -ne $root.Subject) {
   throw 'Certificate issuer does not match the pinned root'
 }
 'CHAIN_OK'
-'''.replaceAll('__ROOT_PATH__', rootPath.replaceAll("'", "''"))
+'''
+        .replaceAll('__ROOT_PATH__', rootPath.replaceAll("'", "''"))
         .replaceAll('__TARGET_PATH__', certificatePath.replaceAll("'", "''"))
         .replaceAll('__ROOT_THUMB__', rootThumbprint);
     final result = await Process.run(
@@ -305,7 +308,8 @@ if ($target.Subject -ne $target.Issuer -and $target.Issuer -ne $root.Subject) {
       <String>['-NoProfile', '-NonInteractive', '-Command', script],
       runInShell: false,
     );
-    if (result.exitCode != 0 || !result.stdout.toString().contains('CHAIN_OK')) {
+    if (result.exitCode != 0 ||
+        !result.stdout.toString().contains('CHAIN_OK')) {
       throw ProcessException(
         'powershell.exe',
         <String>['-NoProfile', '-NonInteractive', '-Command', script],
@@ -342,7 +346,8 @@ if (($keyUsage.KeyUsages -band [System.Security.Cryptography.X509Certificates.X5
   NotAfter = $cert.NotAfter.ToUniversalTime().ToString('o')
   IsCA = $constraints.CertificateAuthority
 } | ConvertTo-Json -Compress
-'''.replaceAll('__PATH__', escapedPath);
+'''
+        .replaceAll('__PATH__', escapedPath);
     final result = await Process.run(
       'powershell.exe',
       <String>['-NoProfile', '-NonInteractive', '-Command', script],
@@ -387,7 +392,9 @@ $machine = Get-ChildItem ("Cert:\LocalMachine\" + $store) -ErrorAction SilentlyC
   CurrentUser = [bool]$current
   LocalMachine = [bool]$machine
 } | ConvertTo-Json -Compress
-'''.replaceAll('__THUMB__', thumb).replaceAll('__STORE__', store);
+'''
+        .replaceAll('__THUMB__', thumb)
+        .replaceAll('__STORE__', store);
     final result = await Process.run(
       'powershell.exe',
       <String>['-NoProfile', '-NonInteractive', '-Command', script],
