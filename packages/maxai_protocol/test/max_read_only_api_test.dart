@@ -257,6 +257,65 @@ void main() {
     expect(await future, isEmpty);
   });
 
+  test('all collection endpoints accept empty results', () async {
+    var future = api.getContactInfo(<int>[17]);
+    var request = await expectRequest(32, <String, Object?>{'contactIds': <int>[17]});
+    reply(request['sequence']! as int, 32, <String, Object?>{'contacts': <Object?>[]});
+    expect(await future, isEmpty);
+    transport.sent.clear();
+
+    future = api.getChats(marker: 123);
+    request = await expectRequest(53, <String, Object?>{'marker': 123});
+    reply(request['sequence']! as int, 53, <String, Object?>{'chats': <Object?>[]});
+    expect(await future, isEmpty);
+    transport.sent.clear();
+
+    future = api.getChatInfo(<int>[42]);
+    request = await expectRequest(48, <String, Object?>{'chatIds': <int>[42]});
+    reply(request['sequence']! as int, 48, <String, Object?>{'chats': <Object?>[]});
+    expect(await future, isEmpty);
+    transport.sent.clear();
+
+    final membersFuture = api.getChatMembers(chatId: 42);
+    request = await expectRequest(59, <String, Object?>{
+      'type': 'MEMBER',
+      'chatId': 42,
+      'marker': 0,
+      'count': 50,
+    });
+    reply(request['sequence']! as int, 59, <String, Object?>{
+      'members': <Object?>[],
+      'marker': 0,
+    });
+    expect((await membersFuture).members, isEmpty);
+    transport.sent.clear();
+
+    future = api.getChatHistory(chatId: 42, from: 123);
+    request = await expectRequest(49, <String, Object?>{
+      'chatId': 42,
+      'forward': 0,
+      'backward': 40,
+      'backwardTime': 0,
+      'forwardTime': 0,
+      'getChat': false,
+      'from': 123,
+      'itemType': 'REGULAR',
+      'getMessages': true,
+      'interactive': false,
+    });
+    reply(request['sequence']! as int, 49, <String, Object?>{'messages': <Object?>[]});
+    expect(await future, isEmpty);
+    transport.sent.clear();
+
+    future = api.getMessages(chatId: 42, messageIds: <int>[900]);
+    request = await expectRequest(71, <String, Object?>{
+      'chatId': 42,
+      'messageIds': <int>[900],
+    });
+    reply(request['sequence']! as int, 71, <String, Object?>{'messages': <Object?>[]});
+    expect(await future, isEmpty);
+  });
+
   test('rejects a RESPONSE with a mismatched opcode', () async {
     final future = api.getChats(marker: 123);
     final request = await expectRequest(53, <String, Object?>{'marker': 123});
