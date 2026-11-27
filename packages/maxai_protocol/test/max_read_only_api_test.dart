@@ -250,4 +250,52 @@ void main() {
     );
     expect(transport.sent, isEmpty);
   });
+  test('CHATS_LIST accepts an empty result', () async {
+    final future = api.getChats(marker: 123456);
+    final request = await expectRequest(53, <String, Object?>{'marker': 123456});
+    reply(request['sequence']! as int, 53, <String, Object?>{'chats': <Object?>[]});
+    expect(await future, isEmpty);
+  });
+
+  test('rejects a RESPONSE with a mismatched opcode', () async {
+    final future = api.getChats(marker: 123);
+    final request = await expectRequest(53, <String, Object?>{'marker': 123});
+    reply(request['sequence']! as int, 48, <String, Object?>{'chats': <Object?>[]});
+    await expectLater(
+      future,
+      throwsA(isA<MaxReadOnlyApiException>().having(
+        (error) => error.opcode,
+        'requested opcode',
+        53,
+      )),
+    );
+  });
+
+  test('rejects malformed response collection without leaking payload', () async {
+    final future = api.getChats(marker: 123);
+    final request = await expectRequest(53, <String, Object?>{'marker': 123});
+    reply(request['sequence']! as int, 53, <String, Object?>{'chats': 'not-a-list'});
+    await expectLater(future, throwsFormatException);
+  });
+
+  test('request timeout clears the pending request', () async {
+    final shortTimeoutApi = MaxReadOnlyApi(
+      connection: connection,
+      requestTimeout: const Duration(milliseconds: 20),
+    );
+    final future = shortTimeoutApi.getChats(marker: 123);
+    await expectRequest(53, <String, Object?>{'marker': 123});
+    await expectLater(future, throwsA(isA<TimeoutException>()));
+    expect(connection.pendingRequestCount, 0);
+    expect(connection.isConnected, isTrue);
+  });
+
+  test('connection close fails outstanding read-only requests', () async {
+    final future = api.getChats(marker: 123);
+    await expectRequest(53, <String, Object?>{'marker': 123});
+    await connection.close();
+    await expectLater(future, throwsA(isA<StateError>()));
+    expect(connection.pendingRequestCount, 0);
+  });
+
 }
