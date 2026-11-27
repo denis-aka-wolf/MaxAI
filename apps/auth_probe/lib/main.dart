@@ -227,6 +227,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
   bool _certificateBusy = false;
   bool _apiBusy = false;
   List<Map<String, Object?>> _lastApiChats = <Map<String, Object?>>[];
+  List<Map<String, Object?>> _lastApiChatInfo = <Map<String, Object?>>[];
   List<Map<String, Object?>> _lastApiContacts = <Map<String, Object?>>[];
   List<Map<String, Object?>> _lastApiMessages = <Map<String, Object?>>[];
   String? _apiResultTitle;
@@ -547,8 +548,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
           if (usePinnedRoot) {
             _maxAiTlsStatus = 'Ошибка TLS';
           } else {
-            _windowsTlsStatus = 'Ошибка TLS';
-          }
+            _windowsTlsStatus = 'Ошибка TLS';          }
         });
       }
     } finally {
@@ -1047,6 +1047,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       _profileSummary = profileText;
       _authenticatedSession = authenticatedSession;
       _lastApiChats = <Map<String, Object?>>[];
+      _lastApiChatInfo = <Map<String, Object?>>[];
       _lastApiContacts = <Map<String, Object?>>[];
       _lastApiMessages = <Map<String, Object?>>[];
       _apiChatIdController.clear();
@@ -1097,8 +1098,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
         } else {
           result[key] = _sanitizeApiValue(entry.value);
         }
-      }
-      return result;
+      }      return result;
     }
     if (value is Iterable) {
       return value.map(_sanitizeApiValue).toList(growable: false);
@@ -1136,7 +1136,9 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       _apiResultText = null;
     });
     final stopwatch = Stopwatch()..start();
+    final chatContext = _chatContextForProbe(label);
     _log('API Probe: $label. Запрос выполняется...');
+    if (chatContext != null) _log('Контекст выбранного чата: $chatContext');
     try {
       final result = await operation();
       stopwatch.stop();
@@ -1222,6 +1224,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       throw const FormatException('Укажи положительный числовой Chat ID.');
     }
     final chats = await _createReadOnlyApi().getChatInfo(<int>[id]);
+    if (mounted) setState(() => _lastApiChatInfo = chats);
     _showApiResult('CHAT_INFO (48)', chats);
     return 'CHAT_INFO вернул чатов: ${chats.length}.';
   }
@@ -1260,6 +1263,33 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     final first = messages.isEmpty ? null : messages.first;
     final fields = first == null ? 'нет' : first.keys.join(', ');
     return 'CHAT_HISTORY вернул сообщений: ${messages.length}; распознано Message ID: ${messageIds.length}. ID автоматически заполнены для MSG_GET. Поля записи: $fields. Текст сообщений не выводится в журнал.';
+  }
+
+  Map<String, Object?>? get _selectedApiChat {
+    final id = int.tryParse(_apiChatIdController.text.trim());
+    if (id == null) return null;
+    for (final chat in _lastApiChats) {
+      if (_recordId(chat, const ['id', 'chatId']) == id) return chat;
+    }
+    for (final chat in _lastApiChatInfo) {
+      if (_recordId(chat, const ['id', 'chatId']) == id) return chat;
+    }
+    return null;
+  }
+
+  String? _chatContextForProbe(String label) {
+    if (!label.startsWith('CHAT_') && !label.startsWith('MSG_GET')) return null;
+    final id = int.tryParse(_apiChatIdController.text.trim());
+    if (id == null) return null;
+    final chat = _selectedApiChat;
+    if (chat == null) return 'Chat ID=$id; запись чата не найдена в текущем snapshot';
+    final title = chat['title'] ?? chat['name'] ?? chat['chatName'];
+    final type = chat['type'] ?? chat['chatType'] ?? chat['kind'];
+    final titleText = title is String && title.trim().isNotEmpty
+        ? title.trim()
+        : 'название не передано';
+    final typeText = type == null ? 'тип не передан' : type.toString();
+    return '"$titleText", ID=$id, тип=$typeText';
   }
 
   int? _recordId(Map<String, Object?> record, List<String> keys) {
@@ -1647,8 +1677,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                                           if (id != null) {
                                             setState(() =>
                                                 _apiContactIdController.text =
-                                                    id.toString());
-                                          }
+                                                    id.toString());                                          }
                                         },
                                 ),
                               ],
@@ -1715,6 +1744,37 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                                           }
                                         },
                                 ),
+                              ],
+                              if (_apiChatIdController.text.trim().isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                Builder(builder: (context) {
+                                  final selectedChat = _selectedApiChat;
+                                  final chatId = _apiChatIdController.text.trim();
+                                  final title = selectedChat?['title'] ??
+                                      selectedChat?['name'] ??
+                                      selectedChat?['chatName'];
+                                  final type = selectedChat?['type'] ??
+                                      selectedChat?['chatType'] ??
+                                      selectedChat?['kind'];
+                                  return Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).colorScheme.secondaryContainer,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Сейчас выбранный чат', style: Theme.of(context).textTheme.titleSmall),
+                                        const SizedBox(height: 4),
+                                        Text(title is String && title.trim().isNotEmpty ? title.trim() : 'Название не получено из списка чатов'),
+                                        Text('Chat ID: $chatId'),
+                                        Text('Тип: ${type?.toString() ?? 'не указан сервером'}'),
+                                      ],
+                                    ),
+                                  );
+                                }),
                               ],
                               const SizedBox(height: 10),
                               Wrap(
