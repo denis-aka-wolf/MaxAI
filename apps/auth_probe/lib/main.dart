@@ -548,7 +548,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
           if (usePinnedRoot) {
             _maxAiTlsStatus = 'Ошибка TLS';
           } else {
-            _windowsTlsStatus = 'Ошибка TLS';          }
+            _windowsTlsStatus = 'Ошибка TLS';
+          }
         });
       }
     } finally {
@@ -1098,7 +1099,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
         } else {
           result[key] = _sanitizeApiValue(entry.value);
         }
-      }      return result;
+      }
+      return result;
     }
     if (value is Iterable) {
       return value.map(_sanitizeApiValue).toList(growable: false);
@@ -1677,7 +1679,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                                           if (id != null) {
                                             setState(() =>
                                                 _apiContactIdController.text =
-                                                    id.toString());                                          }
+                                                    id.toString());
+                                          }
                                         },
                                 ),
                               ],
@@ -1685,6 +1688,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                               TextField(
                                 controller: _apiChatIdController,
                                 enabled: !_apiBusy,
+                                onChanged: (_) => setState(() {}),
                                 keyboardType: TextInputType.number,
                                 decoration: const InputDecoration(
                                   labelText: 'Chat ID',
