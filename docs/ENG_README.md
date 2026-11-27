@@ -20,6 +20,7 @@ Russian is the project's default documentation language. Russian documents are t
 | Topic | Russian source | English translation |
 |---|---|---|
 | MAX protocol specification | [MAX_Protocol_Specification.md](MAX_Protocol_Specification.md) | Translation in progress |
+| Development workflow and VS Code | [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md) | [ENG_DEVELOPMENT_WORKFLOW.md](ENG_DEVELOPMENT_WORKFLOW.md) |
 | Read-only API Probe | [READ_ONLY_API_PROBE.md](READ_ONLY_API_PROBE.md) | [ENG_READ_ONLY_API_PROBE.md](ENG_READ_ONLY_API_PROBE.md) |
 | Roadmap | [ROADMAP.md](ROADMAP.md) | [ENG_ROADMAP.md](ENG_ROADMAP.md) |
 | Windows TLS certificate setup | [TLS_CERTIFICATE_SETUP.md](TLS_CERTIFICATE_SETUP.md) | [ENG_TLS_CERTIFICATE_SETUP.md](ENG_TLS_CERTIFICATE_SETUP.md) |
