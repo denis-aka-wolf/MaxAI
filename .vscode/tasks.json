@@ -1,0 +1,65 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Auth Probe: Flutter Analyze",
+      "type": "process",
+      "command": "flutter",
+      "args": ["analyze"],
+      "options": {
+        "cwd": "${workspaceFolder}/apps/auth_probe"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Auth Probe: Flutter Test",
+      "type": "process",
+      "command": "flutter",
+      "args": ["test"],
+      "options": {
+        "cwd": "${workspaceFolder}/apps/auth_probe"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Auth Probe: Analyze + Test",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Auth Probe: Flutter Analyze",
+        "Auth Probe: Flutter Test"
+      ],
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "MaxAI Protocol: Dart Analyze",
+      "type": "process",
+      "command": "dart",
+      "args": ["analyze"],
+      "options": {
+        "cwd": "${workspaceFolder}/packages/maxai_protocol"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "MaxAI Protocol: Dart Test",
+      "type": "process",
+      "command": "dart",
+      "args": ["test"],
+      "options": {
+        "cwd": "${workspaceFolder}/packages/maxai_protocol"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "MaxAI Protocol: Analyze + Test",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "MaxAI Protocol: Dart Analyze",
+        "MaxAI Protocol: Dart Test"
+      ],
+      "problemMatcher": [],
+      "group": "test"
+    }
+  ]
+}
