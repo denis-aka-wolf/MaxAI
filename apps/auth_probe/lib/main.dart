@@ -1318,13 +1318,26 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
   Map<String, Object?>? get _selectedApiChat {
     final id = int.tryParse(_apiChatIdController.text.trim());
     if (id == null) return null;
-    for (final chat in _lastApiChatInfo) {
-      if (_recordId(chat, const ['id', 'chatId']) == id) return chat;
-    }
+
+    Map<String, Object?>? listRecord;
     for (final chat in _lastApiChats) {
-      if (_recordId(chat, const ['id', 'chatId']) == id) return chat;
+      if (_recordId(chat, const ['id', 'chatId']) == id) {
+        listRecord = chat;
+        break;
+      }
     }
-    return null;
+
+    for (final chat in _lastApiChatInfo) {
+      if (_recordId(chat, const ['id', 'chatId']) == id) {
+        // CHAT_INFO may omit type and participants. Keep those fields from
+        // CHATS_LIST while preferring any detailed values it does provide.
+        return <String, Object?>{
+          ...?listRecord,
+          ...chat,
+        };
+      }
+    }
+    return listRecord;
   }
 
   String? _chatContextForProbe(String label) {
@@ -1332,8 +1345,9 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     final id = int.tryParse(_apiChatIdController.text.trim());
     if (id == null) return null;
     final chat = _selectedApiChat;
-    if (chat == null)
+    if (chat == null) {
       return 'Chat ID=$id; запись чата не найдена в текущем snapshot';
+    }
     final title = chat['title'] ?? chat['name'] ?? chat['chatName'];
     final type = chat['type'] ?? chat['chatType'] ?? chat['kind'];
     final titleText = title is String && title.trim().isNotEmpty
