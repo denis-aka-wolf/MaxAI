@@ -253,26 +253,42 @@ void main() {
   test('CHATS_LIST accepts an empty result', () async {
     final future = api.getChats(marker: 123456);
     final request = await expectRequest(53, <String, Object?>{'marker': 123456});
-    reply(request['sequence']! as int, 53, <String, Object?>{'chats': <Object?>[]});
+    reply(
+      request['sequence']! as int,
+      53,
+      <String, Object?>{'chats': <Object?>[]},
+    );
     expect(await future, isEmpty);
   });
 
   test('all collection endpoints accept empty results', () async {
     var future = api.getContactInfo(<int>[17]);
     var request = await expectRequest(32, <String, Object?>{'contactIds': <int>[17]});
-    reply(request['sequence']! as int, 32, <String, Object?>{'contacts': <Object?>[]});
+    reply(
+      request['sequence']! as int,
+      32,
+      <String, Object?>{'contacts': <Object?>[]},
+    );
     expect(await future, isEmpty);
     transport.sent.clear();
 
     future = api.getChats(marker: 123);
     request = await expectRequest(53, <String, Object?>{'marker': 123});
-    reply(request['sequence']! as int, 53, <String, Object?>{'chats': <Object?>[]});
+    reply(
+      request['sequence']! as int,
+      53,
+      <String, Object?>{'chats': <Object?>[]},
+    );
     expect(await future, isEmpty);
     transport.sent.clear();
 
     future = api.getChatInfo(<int>[42]);
     request = await expectRequest(48, <String, Object?>{'chatIds': <int>[42]});
-    reply(request['sequence']! as int, 48, <String, Object?>{'chats': <Object?>[]});
+    reply(
+      request['sequence']! as int,
+      48,
+      <String, Object?>{'chats': <Object?>[]},
+    );
     expect(await future, isEmpty);
     transport.sent.clear();
 
@@ -303,7 +319,11 @@ void main() {
       'getMessages': true,
       'interactive': false,
     });
-    reply(request['sequence']! as int, 49, <String, Object?>{'messages': <Object?>[]});
+    reply(
+      request['sequence']! as int,
+      49,
+      <String, Object?>{'messages': <Object?>[]},
+    );
     expect(await future, isEmpty);
     transport.sent.clear();
 
@@ -312,7 +332,11 @@ void main() {
       'chatId': 42,
       'messageIds': <int>[900],
     });
-    reply(request['sequence']! as int, 71, <String, Object?>{'messages': <Object?>[]});
+    reply(
+      request['sequence']! as int,
+      71,
+      <String, Object?>{'messages': <Object?>[]},
+    );
     expect(await future, isEmpty);
   });
 
@@ -356,5 +380,4 @@ void main() {
     await expectLater(future, throwsA(isA<StateError>()));
     expect(connection.pendingRequestCount, 0);
   });
-
 }
