@@ -1206,11 +1206,27 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     if (mounted) {
       setState(() {
         _lastApiChats = chats;
+        _lastApiChatInfo = <Map<String, Object?>>[];
         _lastApiMessages = <Map<String, Object?>>[];
         _apiMessageIdsController.clear();
         if (chatIds.isNotEmpty &&
             !chatIds.contains(int.tryParse(_apiChatIdController.text))) {
           _apiChatIdController.text = chatIds.first.toString();
+        }
+        final selectedId = int.tryParse(_apiChatIdController.text.trim());
+        for (final chat in chats) {
+          if (_recordId(chat, const ['id', 'chatId']) != selectedId) continue;
+          final lastMessage = chat['lastMessage'];
+          if (lastMessage is Map) {
+            final lastMessageId = _recordId(
+              lastMessage.cast<String, Object?>(),
+              const ['id', 'messageId'],
+            );
+            if (lastMessageId != null) {
+              _apiMessageIdsController.text = lastMessageId.toString();
+            }
+          }
+          break;
         }
       });
     }
@@ -1236,6 +1252,38 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     if (id == null || id <= 0) {
       throw const FormatException('Укажи положительный числовой Chat ID.');
     }
+
+    final chat = _selectedApiChat;
+    final chatType = (chat?['type'] ?? chat?['chatType'] ?? chat?['kind'])
+        ?.toString()
+        .toUpperCase();
+    if (chatType == 'DIALOG') {
+      final rawParticipants = chat?['participants'];
+      if (rawParticipants is! Map) {
+        throw StateError(
+          'Для личного диалога сервер не передал participants в CHATS_LIST. '
+          'CHAT_MEMBERS (59) предназначен для списка участников группового чата.',
+        );
+      }
+      final participants = <Map<String, Object?>>[];
+      for (final entry in rawParticipants.entries) {
+        final participantId = int.tryParse(entry.key.toString());
+        if (participantId == null || participantId <= 0) continue;
+        participants.add(<String, Object?>{
+          'id': participantId,
+          'joinedAt': entry.value,
+        });
+      }
+      _showApiResult('Участники личного диалога из CHATS_LIST', <String, Object?>{
+        'chatId': id,
+        'type': chatType,
+        'source': 'CHATS_LIST.participants',
+        'owner': chat?['owner'],
+        'participants': participants,
+      });
+      return 'Это личный диалог (DIALOG). Получено участников из CHATS_LIST: ${participants.length}. Запрос CHAT_MEMBERS (59) для DIALOG не отправлялся, так как endpoint предназначен для списка участников группового чата.';
+    }
+
     final result = await _createReadOnlyApi().getChatMembers(chatId: id);
     _showApiResult('CHAT_MEMBERS (59)',
         <String, Object?>{'members': result.members, 'marker': result.marker});
@@ -1744,8 +1792,24 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                                       ? null
                                       : (id) {
                                           if (id != null) {
-                                            setState(() => _apiChatIdController
-                                                .text = id.toString());
+                                            setState(() {
+                                              _apiChatIdController.text =
+                                                  id.toString();
+                                              final chat = _lastApiChats.firstWhere(
+                                                (item) =>
+                                                    _recordId(item, const ['id', 'chatId']) == id,
+                                              );
+                                              final lastMessage = chat['lastMessage'];
+                                              final lastMessageId = lastMessage is Map
+                                                  ? _recordId(
+                                                      lastMessage.cast<String, Object?>(),
+                                                      const ['id', 'messageId'],
+                                                    )
+                                                  : null;
+                                              _apiMessageIdsController.text =
+                                                  lastMessageId?.toString() ?? '';
+                                              _lastApiMessages = <Map<String, Object?>>[];
+                                            });
                                           }
                                         },
                                 ),
