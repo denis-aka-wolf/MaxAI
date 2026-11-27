@@ -57,7 +57,8 @@ abstract final class LoginPayloads {
     required SyncState sync,
     required bool profileEnabled,
     required bool contactEnabled,
-  }) => <String, Object?>{
+  }) =>
+      <String, Object?>{
         'needProfile': profileEnabled,
         'contactsSync': contactEnabled ? sync.contactsSync : -1,
         'configHash': sync.configHash,

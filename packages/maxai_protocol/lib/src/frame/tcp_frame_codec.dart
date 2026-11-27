@@ -101,7 +101,8 @@ final class TcpFrameCodec {
       if (literalLength == 15) {
         while (true) {
           if (position >= source.length) {
-            throw const FormatException('Truncated LZ4 literal length extension.');
+            throw const FormatException(
+                'Truncated LZ4 literal length extension.');
           }
           final extension = source[position++];
           literalLength += extension;
@@ -135,7 +136,8 @@ final class TcpFrameCodec {
       if ((token & 0x0F) == 15) {
         while (true) {
           if (position >= source.length) {
-            throw const FormatException('Truncated LZ4 match length extension.');
+            throw const FormatException(
+                'Truncated LZ4 match length extension.');
           }
           final extension = source[position++];
           matchLength += extension;

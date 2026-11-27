@@ -33,7 +33,8 @@ final class LoginManager {
       throw ArgumentError.value(deviceId, 'deviceId', 'Must not be empty.');
     }
     if (requestTimeout <= Duration.zero) {
-      throw ArgumentError.value(requestTimeout, 'requestTimeout', 'Must be positive.');
+      throw ArgumentError.value(
+          requestTimeout, 'requestTimeout', 'Must be positive.');
     }
     if (userAgent.deviceType != deviceType) {
       throw ArgumentError('deviceType must match userAgent.deviceType.');
@@ -71,7 +72,8 @@ final class LoginManager {
     _inProgress = true;
     try {
       onLog?.call('Отправка LOGIN.');
-      final loginRaw = await _invoke(loginOpcode, _buildLoginPayload(token, syncState));
+      final loginRaw =
+          await _invoke(loginOpcode, _buildLoginPayload(token, syncState));
       final loginResponse = LoginResponse.fromPayload(loginRaw);
       var updatedSync = loginResponse.updateSyncState(syncState);
 
@@ -121,7 +123,8 @@ final class LoginManager {
     }
     final provider = fingerprintProvider;
     if (provider == null) {
-      throw StateError('Mobile LOGIN requires a configured FingerprintProvider.');
+      throw StateError(
+          'Mobile LOGIN requires a configured FingerprintProvider.');
     }
     final Uint8List fingerprint = provider.generate(
       deviceId: deviceId,

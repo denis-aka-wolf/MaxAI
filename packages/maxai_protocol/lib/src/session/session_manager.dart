@@ -77,7 +77,8 @@ final class SessionManager {
   Future<HandshakeResponse> _start(Map<String, Object?> payload) {
     if (_state == SessionState.closed) {
       return Future<HandshakeResponse>.error(
-        StateError('SessionManager is closed. Call reset() before starting again.'),
+        StateError(
+            'SessionManager is closed. Call reset() before starting again.'),
       );
     }
     if (_state == SessionState.ready && _handshakeResponse != null) {

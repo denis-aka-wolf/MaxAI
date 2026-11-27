@@ -17,8 +17,7 @@ final class _JsonPayloadCodec implements PayloadCodec {
 }
 
 final class _FakeTransport implements ProtocolTransport {
-  final StreamController<dynamic> controller =
-      StreamController<dynamic>();
+  final StreamController<dynamic> controller = StreamController<dynamic>();
   final List<Uint8List> sent = <Uint8List>[];
   bool connected = false;
 
@@ -169,5 +168,4 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 5));
     await manager.stop();
   });
-
 }

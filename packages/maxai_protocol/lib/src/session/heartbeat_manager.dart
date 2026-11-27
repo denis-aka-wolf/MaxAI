@@ -65,7 +65,8 @@ final class HeartbeatManager {
     if (_running) return;
     if (connection.state != ProtocolConnectionState.connected ||
         !connection.isConnected) {
-      throw StateError('ProtocolConnection must be connected before heartbeat.');
+      throw StateError(
+          'ProtocolConnection must be connected before heartbeat.');
     }
 
     _running = true;

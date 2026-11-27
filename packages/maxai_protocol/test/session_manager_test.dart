@@ -17,8 +17,7 @@ final class _JsonPayloadCodec implements PayloadCodec {
 }
 
 final class _FakeTransport implements ProtocolTransport {
-  final StreamController<dynamic> controller =
-      StreamController<dynamic>();
+  final StreamController<dynamic> controller = StreamController<dynamic>();
   final List<Uint8List> sent = <Uint8List>[];
   bool connected = false;
 
@@ -159,7 +158,8 @@ void main() {
     final payload = await sentPayload();
     expect(payload.keys.toSet(), <String>{'userAgent', 'deviceId'});
     expect(payload['deviceId'], 'web-device');
-    final userAgent = (payload['userAgent'] as Map<Object?, Object?>).cast<String, Object?>();
+    final userAgent =
+        (payload['userAgent'] as Map<Object?, Object?>).cast<String, Object?>();
     expect(userAgent.keys.toSet(), <String>{
       'deviceType',
       'locale',
@@ -257,7 +257,8 @@ void main() {
     expect(manager.state, SessionState.ready);
   });
 
-  test('close is rejected during handshake and closed manager requires reset', () async {
+  test('close is rejected during handshake and closed manager requires reset',
+      () async {
     await connection.connect();
     final manager = SessionManager(connection: connection);
 

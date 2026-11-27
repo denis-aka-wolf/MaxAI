@@ -5,10 +5,18 @@ void main() {
   group('LoginResponse', () {
     test('parses login data and login2 flags', () {
       final response = LoginResponse.fromPayload({
-        'chats': <Object?>[{'id': 10}],
+        'chats': <Object?>[
+          {'id': 10}
+        ],
         'profile': {'id': 1},
-        'messages': <Object?, Object?>{10: <Object?>[{'id': 100}]},
-        'contacts': <Object?>[{'id': 2}],
+        'messages': <Object?, Object?>{
+          10: <Object?>[
+            {'id': 100}
+          ]
+        },
+        'contacts': <Object?>[
+          {'id': 2}
+        ],
         'token': 'rotated-token',
         'time': 123456,
         'config': {'hash': 'cfg-v2'},
@@ -60,7 +68,9 @@ void main() {
   test('LOGIN2 reads contactInfos and updates only config hash', () {
     final response = Login2Response.fromPayload({
       'profile': {'id': 5},
-      'contactInfos': <Object?>[{'id': 6}],
+      'contactInfos': <Object?>[
+        {'id': 6}
+      ],
       'config': {'hash': 42},
     });
     expect(response.contacts, hasLength(1));
@@ -82,10 +92,13 @@ void main() {
     );
   });
 
-  test('selects LOGIN2 profile/contacts only when corresponding flags are set', () {
+  test('selects LOGIN2 profile/contacts only when corresponding flags are set',
+      () {
     final login = LoginResponse.fromPayload({
       'profile': {'id': 'login'},
-      'contacts': <Object?>[{'id': 'login-contact'}],
+      'contacts': <Object?>[
+        {'id': 'login-contact'}
+      ],
       'login2Flags': {
         'profileEnabled': true,
         'contactEnabled': true,
@@ -93,7 +106,9 @@ void main() {
     });
     final login2 = Login2Response.fromPayload({
       'profile': {'id': 'login2'},
-      'contactInfos': <Object?>[{'id': 'login2-contact'}],
+      'contactInfos': <Object?>[
+        {'id': 'login2-contact'}
+      ],
     });
     final result = LoginBootstrapResult(
       login: login,

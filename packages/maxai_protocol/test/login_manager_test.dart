@@ -26,10 +26,12 @@ final class _Transport implements ProtocolTransport {
   Future<void> connect() async {
     connected = true;
   }
+
   @override
   Future<void> send(Uint8List bytes) async {
     sent.add(Uint8List.fromList(bytes));
   }
+
   @override
   Future<void> close([int? code, String? reason]) async {
     connected = false;
@@ -43,7 +45,9 @@ final class _Fingerprint implements FingerprintProvider {
     required String deviceId,
     required int callsSeed,
     required String architecture,
-  }) => Uint8List.fromList([callsSeed & 0xff, deviceId.length, architecture.length]);
+  }) =>
+      Uint8List.fromList(
+          [callsSeed & 0xff, deviceId.length, architecture.length]);
 }
 
 void main() {
@@ -107,7 +111,8 @@ void main() {
     ));
   }
 
-  test('mobile LOGIN performs LOGIN2 only when one of its flags is enabled', () async {
+  test('mobile LOGIN performs LOGIN2 only when one of its flags is enabled',
+      () async {
     final manager = LoginManager(
       connection: connection,
       sessionManager: session,
@@ -121,18 +126,20 @@ void main() {
     await Future<void>.delayed(Duration.zero);
     final loginFrame = codec.decode(transport.sent[1])!;
     expect(loginFrame.opcode, LoginManager.loginOpcode);
-    expect(requestPayload(1).keys, containsAll([
-      'userAgent',
-      'token',
-      'chatCacheFingerprint',
-      'chatsSync',
-      'contactsSync',
-      'draftsSync',
-      'interactive',
-      'presenceSync',
-      'exp',
-      'configHash',
-    ]));
+    expect(
+        requestPayload(1).keys,
+        containsAll([
+          'userAgent',
+          'token',
+          'chatCacheFingerprint',
+          'chatsSync',
+          'contactsSync',
+          'draftsSync',
+          'interactive',
+          'presenceSync',
+          'exp',
+          'configHash',
+        ]));
 
     reply(
       sequence: 1,
@@ -161,7 +168,9 @@ void main() {
       sequence: 2,
       opcode: LoginManager.login2Opcode,
       payload: {
-        'contactInfos': [{'id': 8}],
+        'contactInfos': [
+          {'id': 8}
+        ],
         'config': {'hash': 'new-config'},
       },
     );
@@ -169,7 +178,9 @@ void main() {
     expect(result.effectiveToken, 'auth-token');
     expect(result.syncState.chatsSync, 500);
     expect(result.syncState.configHash, 'new-config');
-    expect(result.contacts, [{'id': 8}]);
+    expect(result.contacts, [
+      {'id': 8}
+    ]);
     expect(result.login2, isNotNull);
   });
 
@@ -229,7 +240,9 @@ void main() {
     reply(
       sequence: 1,
       opcode: LoginManager.loginOpcode,
-      payload: {'profile': {'id': 1}},
+      payload: {
+        'profile': {'id': 1}
+      },
     );
     final result = await future;
     expect(result.profile, {'id': 1});

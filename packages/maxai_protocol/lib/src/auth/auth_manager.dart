@@ -152,7 +152,8 @@ final class AuthManager {
       final status = await checkQrLogin(request.trackId);
       onStatus?.call(status);
       if (status.loginAvailable == true) return true;
-      final remaining = request.expiresAt - DateTime.now().millisecondsSinceEpoch;
+      final remaining =
+          request.expiresAt - DateTime.now().millisecondsSinceEpoch;
       if (remaining <= 0) break;
       final delay = request.pollingInterval < remaining
           ? request.pollingInterval
@@ -323,12 +324,12 @@ final class AuthManager {
     if (value is List) {
       if (depth >= 8) return 'List(length=${value.length})';
       final items = value.take(30).map(
-        (item) => _formatDiagnosticValue(
-          item,
-          depth: depth + 1,
-          redactStringValues: redactNestedStrings,
-        ),
-      );
+            (item) => _formatDiagnosticValue(
+              item,
+              depth: depth + 1,
+              redactStringValues: redactNestedStrings,
+            ),
+          );
       final suffix = value.length > 30 ? ', …' : '';
       return '[${items.join(', ')}$suffix] (List length=${value.length})';
     }
@@ -426,5 +427,6 @@ final class AuthProtocolException implements Exception {
   final int opcode;
 
   @override
-  String toString() => 'AuthProtocolException(opcode: $opcode, message: $message)';
+  String toString() =>
+      'AuthProtocolException(opcode: $opcode, message: $message)';
 }

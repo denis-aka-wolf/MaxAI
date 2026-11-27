@@ -1,7 +1,6 @@
 typedef ConfigHash = Object;
 
-const String defaultConfigHash =
-    '00000000-0000000000000000-00000000-'
+const String defaultConfigHash = '00000000-0000000000000000-00000000-'
     '0000000000000000-0000000000000000-0-'
     '0000000000000000-00000000';
 
@@ -26,7 +25,8 @@ final class SyncState {
     int? draftsSync,
     int? presenceSync,
     ConfigHash? configHash,
-  }) => SyncState(
+  }) =>
+      SyncState(
         chatsSync: chatsSync ?? this.chatsSync,
         contactsSync: contactsSync ?? this.contactsSync,
         draftsSync: draftsSync ?? this.draftsSync,
@@ -53,6 +53,7 @@ final class SyncState {
       );
 
   @override
-  String toString() => 'SyncState(chatsSync: $chatsSync, contactsSync: $contactsSync, '
+  String toString() =>
+      'SyncState(chatsSync: $chatsSync, contactsSync: $contactsSync, '
       'draftsSync: $draftsSync, presenceSync: $presenceSync, configHashSet: true)';
 }

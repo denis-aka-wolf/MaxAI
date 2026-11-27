@@ -89,6 +89,7 @@ final class QrLoginRequest {
 
   /// Unix timestamp в миллисекундах, как в ответе PyMax.
   final int expiresAt;
+
   /// Интервал опроса в миллисекундах, как в ответе PyMax.
   final int pollingInterval;
   final String qrLink;
@@ -129,7 +130,8 @@ final class QrLoginStatus {
     final status = _stringMap(map['status'], 'GET_QR_STATUS.status');
     final loginAvailable = status['loginAvailable'];
     if (loginAvailable != null && loginAvailable is! bool) {
-      throw const FormatException('status.loginAvailable must be bool or null.');
+      throw const FormatException(
+          'status.loginAvailable must be bool or null.');
     }
     return QrLoginStatus(
       expiresAt: _requiredInt(status, 'expiresAt'),
@@ -190,7 +192,8 @@ int _requiredInt(Map<String, Object?> map, String key) {
   final safeValue = switch (value) {
     null => 'null',
     num() || bool() => value.toString(),
-    String() => value.length <= 80 ? '"$value"' : '<string length=${value.length}>',
+    String() =>
+      value.length <= 80 ? '"$value"' : '<string length=${value.length}>',
     _ => '<${value.runtimeType}>',
   };
   throw FormatException(

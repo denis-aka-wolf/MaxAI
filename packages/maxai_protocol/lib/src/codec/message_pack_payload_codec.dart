@@ -54,7 +54,6 @@ final class MessagePackPayloadCodec implements PayloadCodec {
   Uint8List encode(Object? payload) => serialize(payload);
 
   @override
-  Object? decode(Uint8List bytes) => bytes.isEmpty
-      ? null
-      : deserialize(bytes, extDecoder: _extDecoder);
+  Object? decode(Uint8List bytes) =>
+      bytes.isEmpty ? null : deserialize(bytes, extDecoder: _extDecoder);
 }

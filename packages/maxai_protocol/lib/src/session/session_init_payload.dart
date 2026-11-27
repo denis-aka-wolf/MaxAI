@@ -19,7 +19,8 @@ final class SessionInitPayload {
     Random? random,
   }) {
     if (userAgent.deviceType == DeviceType.web) {
-      throw ArgumentError('Mobile SESSION_INIT does not accept WEB device type.');
+      throw ArgumentError(
+          'Mobile SESSION_INIT does not accept WEB device type.');
     }
     final sessionId = clientSessionId ?? ((random ?? Random()).nextInt(70) + 1);
     if (sessionId < 1 || sessionId > 70) {

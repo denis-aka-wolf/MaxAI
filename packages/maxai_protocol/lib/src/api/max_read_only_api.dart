@@ -49,7 +49,8 @@ final class MaxReadOnlyApi {
       opcode: contactInfoOpcode,
       payload: <String, Object?>{'contactIds': contactIds},
     );
-    return _mapList(_map(payload, 'CONTACT_INFO')['contacts'] ?? const [], 'contacts');
+    return _mapList(
+        _map(payload, 'CONTACT_INFO')['contacts'] ?? const [], 'contacts');
   }
 
   Future<List<Map<String, Object?>>> getChats({int? marker}) async {
@@ -87,7 +88,8 @@ final class MaxReadOnlyApi {
         'messageIds': messageIds,
       },
     );
-    return _mapList(_map(payload, 'MSG_GET')['messages'] ?? const [], 'messages');
+    return _mapList(
+        _map(payload, 'MSG_GET')['messages'] ?? const [], 'messages');
   }
 
   Future<MaxChatMembersResult> getChatMembers({
@@ -153,7 +155,8 @@ final class MaxReadOnlyApi {
         'interactive': interactive,
       },
     );
-    return _mapList(_map(payload, 'CHAT_HISTORY')['messages'] ?? const [], 'messages');
+    return _mapList(
+        _map(payload, 'CHAT_HISTORY')['messages'] ?? const [], 'messages');
   }
 
   Future<Object?> _invoke({
@@ -210,7 +213,8 @@ final class MaxReadOnlyApi {
       throw FormatException('$field must be a list.');
     }
     return List<Map<String, Object?>>.unmodifiable(
-      value.map((item) => Map<String, Object?>.unmodifiable(_map(item, '$field[]'))),
+      value.map(
+          (item) => Map<String, Object?>.unmodifiable(_map(item, '$field[]'))),
     );
   }
 }
@@ -232,5 +236,6 @@ final class MaxReadOnlyApiException implements Exception {
   final int opcode;
 
   @override
-  String toString() => 'MaxReadOnlyApiException(opcode: $opcode, message: $message)';
+  String toString() =>
+      'MaxReadOnlyApiException(opcode: $opcode, message: $message)';
 }

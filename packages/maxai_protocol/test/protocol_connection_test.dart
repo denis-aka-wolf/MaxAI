@@ -16,8 +16,7 @@ final class _BytesCodec implements PayloadCodec {
 }
 
 final class _FakeTransport implements ProtocolTransport {
-  final StreamController<dynamic> controller =
-      StreamController<dynamic>();
+  final StreamController<dynamic> controller = StreamController<dynamic>();
   final List<Uint8List> sent = <Uint8List>[];
   bool connected = false;
   bool failSend = false;
@@ -175,7 +174,8 @@ void main() {
     );
     await Future<void>.delayed(Duration.zero);
 
-    final requests = transport.sent.map((bytes) => codec.decode(bytes)!).toList();
+    final requests =
+        transport.sent.map((bytes) => codec.decode(bytes)!).toList();
     expect(requests.map((frame) => frame.sequence), <int>[0, 1]);
 
     for (final request in requests) {
@@ -190,7 +190,8 @@ void main() {
     await Future.wait([firstFuture, secondFuture]);
     expect(connection.pendingRequestCount, 0);
   });
-  test('send failure completes request with error and clears pending entry', () async {
+  test('send failure completes request with error and clears pending entry',
+      () async {
     await connection.connect();
     transport.failSend = true;
 
@@ -204,5 +205,4 @@ void main() {
 
     expect(connection.pendingRequestCount, 0);
   });
-
 }

@@ -42,8 +42,7 @@ final class MaxUserProfile {
   }
 
   @override
-  String toString() =>
-      'MaxUserProfile(contact: ${contact != null}, '
+  String toString() => 'MaxUserProfile(contact: ${contact != null}, '
       'profileOptions: ${profileOptions.length})';
 }
 
@@ -92,8 +91,7 @@ final class MaxUserContact {
   }
 
   @override
-  String toString() =>
-      'MaxUserContact(id: ${id == null ? "unset" : "set"}, '
+  String toString() => 'MaxUserContact(id: ${id == null ? "unset" : "set"}, '
       'names: ${names.length}, options: ${options.length})';
 }
 
@@ -142,16 +140,14 @@ final class MaxAuthenticatedSession {
     return MaxAuthenticatedSession(
       token: result.effectiveToken,
       login: result,
-      profile: rawProfile == null
-          ? null
-          : MaxUserProfile.fromPayload(rawProfile),
+      profile:
+          rawProfile == null ? null : MaxUserProfile.fromPayload(rawProfile),
       createdAt: DateTime.now(),
     );
   }
 
   @override
-  String toString() =>
-      'MaxAuthenticatedSession(tokenSet: ${token.isNotEmpty}, '
+  String toString() => 'MaxAuthenticatedSession(tokenSet: ${token.isNotEmpty}, '
       'profileSet: ${profile != null}, createdAt: $createdAt)';
 }
 

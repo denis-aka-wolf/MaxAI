@@ -91,7 +91,8 @@ void main() {
 
   test('CHATS_LIST uses marker and parses chats', () async {
     final future = api.getChats(marker: 123456);
-    final request = await expectRequest(53, <String, Object?>{'marker': 123456});
+    final request =
+        await expectRequest(53, <String, Object?>{'marker': 123456});
     reply(request['sequence']! as int, 53, <String, Object?>{
       'chats': <Object?>[
         <String, Object?>{'id': 42, 'title': 'Test chat'},
@@ -191,7 +192,8 @@ void main() {
     expect((await future).single['id'], 900);
   });
 
-  test('PROFILE and contact snapshot come from LOGIN data, not PROFILE opcode', () {
+  test('PROFILE and contact snapshot come from LOGIN data, not PROFILE opcode',
+      () {
     final login = LoginBootstrapResult(
       login: LoginResponse.fromPayload(<String, Object?>{
         'profile': <String, Object?>{
@@ -252,7 +254,8 @@ void main() {
   });
   test('CHATS_LIST accepts an empty result', () async {
     final future = api.getChats(marker: 123456);
-    final request = await expectRequest(53, <String, Object?>{'marker': 123456});
+    final request =
+        await expectRequest(53, <String, Object?>{'marker': 123456});
     reply(
       request['sequence']! as int,
       53,
@@ -263,7 +266,9 @@ void main() {
 
   test('all collection endpoints accept empty results', () async {
     var future = api.getContactInfo(<int>[17]);
-    var request = await expectRequest(32, <String, Object?>{'contactIds': <int>[17]});
+    var request = await expectRequest(32, <String, Object?>{
+      'contactIds': <int>[17]
+    });
     reply(
       request['sequence']! as int,
       32,
@@ -283,7 +288,9 @@ void main() {
     transport.sent.clear();
 
     future = api.getChatInfo(<int>[42]);
-    request = await expectRequest(48, <String, Object?>{'chatIds': <int>[42]});
+    request = await expectRequest(48, <String, Object?>{
+      'chatIds': <int>[42]
+    });
     reply(
       request['sequence']! as int,
       48,
@@ -343,7 +350,8 @@ void main() {
   test('rejects a RESPONSE with a mismatched opcode', () async {
     final future = api.getChats(marker: 123);
     final request = await expectRequest(53, <String, Object?>{'marker': 123});
-    reply(request['sequence']! as int, 48, <String, Object?>{'chats': <Object?>[]});
+    reply(request['sequence']! as int, 48,
+        <String, Object?>{'chats': <Object?>[]});
     await expectLater(
       future,
       throwsA(isA<MaxReadOnlyApiException>().having(
@@ -354,10 +362,12 @@ void main() {
     );
   });
 
-  test('rejects malformed response collection without leaking payload', () async {
+  test('rejects malformed response collection without leaking payload',
+      () async {
     final future = api.getChats(marker: 123);
     final request = await expectRequest(53, <String, Object?>{'marker': 123});
-    reply(request['sequence']! as int, 53, <String, Object?>{'chats': 'not-a-list'});
+    reply(request['sequence']! as int, 53,
+        <String, Object?>{'chats': 'not-a-list'});
     await expectLater(future, throwsFormatException);
   });
 

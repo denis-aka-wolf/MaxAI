@@ -31,7 +31,8 @@ final class LoginConfig {
     final map = _stringMap(value, 'config');
     final hash = map['hash'];
     if (hash != null && hash is! String && hash is! int) {
-      throw const FormatException('config.hash must be a string, integer or null.');
+      throw const FormatException(
+          'config.hash must be a string, integer or null.');
     }
     return LoginConfig(hash: hash);
   }
@@ -96,7 +97,8 @@ final class LoginResponse {
       time: _optionalInt(map, 'time'),
       config: configValue == null ? null : LoginConfig.fromPayload(configValue),
       updates: _optionalInt(map, 'updates'),
-      login2Flags: flagsValue == null ? null : Login2Flags.fromPayload(flagsValue),
+      login2Flags:
+          flagsValue == null ? null : Login2Flags.fromPayload(flagsValue),
     );
   }
 }
