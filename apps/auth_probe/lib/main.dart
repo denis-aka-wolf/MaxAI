@@ -1284,7 +1284,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     final id = int.tryParse(_apiChatIdController.text.trim());
     if (id == null) return null;
     final chat = _selectedApiChat;
-    if (chat == null) return 'Chat ID=$id; запись чата не найдена в текущем snapshot';
+    if (chat == null)
+      return 'Chat ID=$id; запись чата не найдена в текущем snapshot';
     final title = chat['title'] ?? chat['name'] ?? chat['chatName'];
     final type = chat['type'] ?? chat['chatType'] ?? chat['kind'];
     final titleText = title is String && title.trim().isNotEmpty
@@ -1749,11 +1750,14 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                                         },
                                 ),
                               ],
-                              if (_apiChatIdController.text.trim().isNotEmpty) ...[
+                              if (_apiChatIdController.text
+                                  .trim()
+                                  .isNotEmpty) ...[
                                 const SizedBox(height: 8),
                                 Builder(builder: (context) {
                                   final selectedChat = _selectedApiChat;
-                                  final chatId = _apiChatIdController.text.trim();
+                                  final chatId =
+                                      _apiChatIdController.text.trim();
                                   final title = selectedChat?['title'] ??
                                       selectedChat?['name'] ??
                                       selectedChat?['chatName'];
@@ -1764,17 +1768,27 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                                     width: double.infinity,
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
-                                      color: Theme.of(context).colorScheme.secondaryContainer,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .secondaryContainer,
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        Text('Сейчас выбранный чат', style: Theme.of(context).textTheme.titleSmall),
+                                        Text('Сейчас выбранный чат',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleSmall),
                                         const SizedBox(height: 4),
-                                        Text(title is String && title.trim().isNotEmpty ? title.trim() : 'Название не получено из списка чатов'),
+                                        Text(title is String &&
+                                                title.trim().isNotEmpty
+                                            ? title.trim()
+                                            : 'Название не получено из списка чатов'),
                                         Text('Chat ID: $chatId'),
-                                        Text('Тип: ${type?.toString() ?? 'не указан сервером'}'),
+                                        Text(
+                                            'Тип: ${type?.toString() ?? 'не указан сервером'}'),
                                       ],
                                     ),
                                   );
