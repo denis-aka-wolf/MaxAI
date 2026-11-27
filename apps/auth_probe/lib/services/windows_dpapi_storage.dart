@@ -208,8 +208,9 @@ class WindowsDpapiStorage {
       return Uint8List.fromList(
           output.ref.pbData.asTypedList(output.ref.cbData));
     } finally {
-      if (output.ref.pbData != nullptr)
+      if (output.ref.pbData != nullptr) {
         _localFree(output.ref.pbData.cast<Void>());
+      }
       if (description.value != nullptr) {
         _localFree(description.value.cast<Void>());
       }
