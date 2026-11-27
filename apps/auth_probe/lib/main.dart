@@ -1644,10 +1644,11 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                                   onChanged: _apiBusy
                                       ? null
                                       : (id) {
-                                          if (id != null)
+                                          if (id != null) {
                                             setState(() =>
                                                 _apiContactIdController.text =
                                                     id.toString());
+                                          }
                                         },
                                 ),
                               ],
@@ -1708,9 +1709,10 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                                   onChanged: _apiBusy
                                       ? null
                                       : (id) {
-                                          if (id != null)
+                                          if (id != null) {
                                             setState(() => _apiChatIdController
                                                 .text = id.toString());
+                                          }
                                         },
                                 ),
                               ],
@@ -1785,6 +1787,34 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                               if (_apiBusy) ...[
                                 const SizedBox(height: 10),
                                 const LinearProgressIndicator(),
+                              ],
+                              if (_apiResultText != null) ...[
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Результат: ${_apiResultTitle ?? 'API'}',
+                                  style: Theme.of(context).textTheme.titleSmall,
+                                ),
+                                const SizedBox(height: 6),
+                                Container(
+                                  width: double.infinity,
+                                  constraints: const BoxConstraints(maxHeight: 360),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: SingleChildScrollView(
+                                    child: SelectableText(
+                                      _apiResultText!,
+                                      style: const TextStyle(fontFamily: 'Consolas', fontSize: 12),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Секретные поля авторизации маскируются. Содержимое переписки отображается локально.',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
                               ],
                               if (_lastApiChats.isNotEmpty) ...[
                                 const SizedBox(height: 8),
