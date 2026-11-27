@@ -386,8 +386,13 @@ void main() {
   test('connection close fails outstanding read-only requests', () async {
     final future = api.getChats(marker: 123);
     await expectRequest(53, <String, Object?>{'marker': 123});
+
+    // Attach the matcher before closing: the pending request fails as soon
+    // as close() cancels it, before close() itself completes.
+    final expectation = expectLater(future, throwsA(isA<StateError>()));
     await connection.close();
-    await expectLater(future, throwsA(isA<StateError>()));
+    await expectation;
+
     expect(connection.pendingRequestCount, 0);
   });
 }
