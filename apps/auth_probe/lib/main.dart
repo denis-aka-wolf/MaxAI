@@ -1270,10 +1270,10 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
   Map<String, Object?>? get _selectedApiChat {
     final id = int.tryParse(_apiChatIdController.text.trim());
     if (id == null) return null;
-    for (final chat in _lastApiChats) {
+    for (final chat in _lastApiChatInfo) {
       if (_recordId(chat, const ['id', 'chatId']) == id) return chat;
     }
-    for (final chat in _lastApiChatInfo) {
+    for (final chat in _lastApiChats) {
       if (_recordId(chat, const ['id', 'chatId']) == id) return chat;
     }
     return null;
