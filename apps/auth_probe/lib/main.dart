@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 import 'dart:io';
 
@@ -231,6 +232,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
   List<Map<String, Object?>> _lastApiChats = <Map<String, Object?>>[];
   List<Map<String, Object?>> _lastApiContacts = <Map<String, Object?>>[];
   List<Map<String, Object?>> _lastApiMessages = <Map<String, Object?>>[];
+  String? _apiResultTitle;
+  String? _apiResultText;
 
   final WindowsCertificateManager _certificateManager =
       WindowsCertificateManager();
@@ -1063,6 +1066,39 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
   }
 
 
+  Object? _sanitizeApiValue(Object? value) {
+    if (value is Map) {
+      final result = <String, Object?>{};
+      for (final entry in value.entries) {
+        final key = entry.key.toString();
+        if (RegExp(r'token|password|secret|authorization|cookie|sessionkey', caseSensitive: false).hasMatch(key)) {
+          result[key] = '<скрыто>';
+        } else {
+          result[key] = _sanitizeApiValue(entry.value);
+        }
+      }
+      return result;
+    }
+    if (value is Iterable) {
+      return value.map(_sanitizeApiValue).toList(growable: false);
+    }
+    if (value == null || value is String || value is num || value is bool) {
+      return value;
+    }
+    return value.toString();
+  }
+
+  void _showApiResult(String title, Object? value) {
+    final formatted = const JsonEncoder.withIndent('  ').convert(
+      _sanitizeApiValue(value),
+    );
+    if (!mounted) return;
+    setState(() {
+      _apiResultTitle = title;
+      _apiResultText = formatted;
+    });
+  }
+
   Future<void> _runApiCheck(
     String label,
     Future<String> Function() operation,
@@ -1070,7 +1106,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     if (_apiBusy || _busy || !_loginComplete || _connection?.isConnected != true) {
       return;
     }
-    setState(() => _apiBusy = true);
+    setState(() { _apiBusy = true; _apiResultTitle = label; _apiResultText = null; });
     final stopwatch = Stopwatch()..start();
     _log('API Probe: $label. Запрос выполняется...');
     try {
@@ -1098,6 +1134,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     if (session == null) throw StateError('Нет данных LOGIN.');
     final profile = _createReadOnlyApi().profileFromLogin(session.login);
     if (profile == null) return 'Профиль отсутствует в LOGIN/LOGIN2.';
+    _showApiResult('PROFILE snapshot из LOGIN', <String, Object?>{'displayName': profile.displayName, 'contactId': profile.contact?.id, 'country': profile.contact?.country, 'namesCount': profile.contact?.names.length ?? 0, 'profileOptionsCount': profile.profileOptions.length});
     return 'Профиль получен из LOGIN/LOGIN2; имя задано: ${profile.displayName != null}; contact ID задан: ${profile.contact?.id != null}.';
   }
 
@@ -1106,6 +1143,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
     if (session == null) throw StateError('Нет данных LOGIN.');
     final contacts = _createReadOnlyApi().contactsFromLogin(session.login);
     if (mounted) setState(() => _lastApiContacts = contacts);
+    _showApiResult('CONTACTS snapshot из LOGIN', contacts);
     return 'Контактов в snapshot LOGIN/LOGIN2: ${contacts.length}.';
   }
 
@@ -1115,6 +1153,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       throw const FormatException('Укажи положительный числовой Contact ID.');
     }
     final contacts = await _createReadOnlyApi().getContactInfo(<int>[id]);
+    _showApiResult('CONTACT_INFO (32)', contacts);
     return 'CONTACT_INFO вернул записей: ${contacts.length}.';
   }
 
@@ -1135,6 +1174,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
         }
       });
     }
+    _showApiResult('CHATS_LIST (53)', chats);
     final first = chats.isEmpty ? null : chats.first;
     final fields = first == null ? 'нет' : first.keys.join(', ');
     return 'CHATS_LIST вернул записей: ${chats.length}; записей с распознанным Chat ID: ${chatIds.length}. Первый чат автоматически выбран. Поля записи: $fields.';
@@ -1146,6 +1186,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       throw const FormatException('Укажи положительный числовой Chat ID.');
     }
     final chats = await _createReadOnlyApi().getChatInfo(<int>[id]);
+    _showApiResult('CHAT_INFO (48)', chats);
     return 'CHAT_INFO вернул чатов: ${chats.length}.';
   }
 
@@ -1155,6 +1196,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       throw const FormatException('Укажи положительный числовой Chat ID.');
     }
     final result = await _createReadOnlyApi().getChatMembers(chatId: id);
+    _showApiResult('CHAT_MEMBERS (59)', <String, Object?>{'members': result.members, 'marker': result.marker});
     return 'CHAT_MEMBERS вернул участников: ${result.members.length}; следующий marker: ${result.marker}.';
   }
 
@@ -1177,6 +1219,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
         _apiMessageIdsController.text = messageIds.join(', ');
       });
     }
+    _showApiResult('CHAT_HISTORY (49)', messages);
     final first = messages.isEmpty ? null : messages.first;
     final fields = first == null ? 'нет' : first.keys.join(', ');
     return 'CHAT_HISTORY вернул сообщений: ${messages.length}; распознано Message ID: ${messageIds.length}. ID автоматически заполнены для MSG_GET. Поля записи: $fields. Текст сообщений не выводится в журнал.';
@@ -1216,6 +1259,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       chatId: chatId,
       messageIds: messageIds.cast<int>(),
     );
+    if (mounted) setState(() => _lastApiMessages = messages);
+    _showApiResult('MSG_GET (71)', messages);
     return 'MSG_GET вернул сообщений: ${messages.length}. Тексты сообщений не выводятся в журнал.';
   }
 
@@ -1614,6 +1659,34 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                                         if (_apiBusy) ...[
                                           const SizedBox(height: 10),
                                           const LinearProgressIndicator(),
+                                        ],
+                                        if (_apiResultText != null) ...[
+                                          const SizedBox(height: 12),
+                                          Text(
+                                            'Результат: ${_apiResultTitle ?? 'API'}',
+                                            style: Theme.of(context).textTheme.titleSmall,
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Container(
+                                            width: double.infinity,
+                                            constraints: const BoxConstraints(maxHeight: 360),
+                                            padding: const EdgeInsets.all(12),
+                                            decoration: BoxDecoration(
+                                              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: SingleChildScrollView(
+                                              child: SelectableText(
+                                                _apiResultText!,
+                                                style: const TextStyle(fontFamily: 'Consolas', fontSize: 12),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'Поля token/password/secret и другие данные авторизации автоматически скрываются. Содержимое переписок отображается локально в этом окне.',
+                                            style: Theme.of(context).textTheme.bodySmall,
+                                          ),
                                         ],
                                         if (_lastApiChats.isNotEmpty) ...[
                                           const SizedBox(height: 8),
