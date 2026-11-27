@@ -230,6 +230,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
   bool _apiBusy = false;
   List<Map<String, Object?>> _lastApiChats = <Map<String, Object?>>[];
   List<Map<String, Object?>> _lastApiContacts = <Map<String, Object?>>[];
+  List<Map<String, Object?>> _lastApiMessages = <Map<String, Object?>>[];
 
   final WindowsCertificateManager _certificateManager =
       WindowsCertificateManager();
@@ -1027,6 +1028,9 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       _authenticatedSession = authenticatedSession;
       _lastApiChats = <Map<String, Object?>>[];
       _lastApiContacts = <Map<String, Object?>>[];
+      _lastApiMessages = <Map<String, Object?>>[];
+      _apiChatIdController.clear();
+      _apiMessageIdsController.clear();
     });
 
     _log('LOGIN завершён. Чатов: ${result.login.chats.length}; контактов: ${result.contacts.length}; сообщений в начальном ответе: ${result.login.messages.length}.');
@@ -1116,8 +1120,24 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
 
   Future<String> _probeChatsList() async {
     final chats = await _createReadOnlyApi().getChats();
-    if (mounted) setState(() => _lastApiChats = chats);
-    return 'CHATS_LIST вернул чатов: ${chats.length}. Укажи Chat ID для следующих проверок.';
+    final chatIds = chats
+        .map((chat) => _recordId(chat, const ['id', 'chatId']))
+        .whereType<int>()
+        .toList(growable: false);
+    if (mounted) {
+      setState(() {
+        _lastApiChats = chats;
+        _lastApiMessages = <Map<String, Object?>>[];
+        _apiMessageIdsController.clear();
+        if (chatIds.isNotEmpty &&
+            !chatIds.contains(int.tryParse(_apiChatIdController.text))) {
+          _apiChatIdController.text = chatIds.first.toString();
+        }
+      });
+    }
+    final first = chats.isEmpty ? null : chats.first;
+    final fields = first == null ? 'нет' : first.keys.join(', ');
+    return 'CHATS_LIST вернул записей: ${chats.length}; записей с распознанным Chat ID: ${chatIds.length}. Первый чат автоматически выбран. Поля записи: $fields.';
   }
 
   Future<String> _probeChatInfo() async {
@@ -1147,9 +1167,37 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
       chatId: id,
       backward: 20,
     );
-    return 'CHAT_HISTORY вернул сообщений: ${messages.length}. Текст сообщений не выводится в журнал.';
+    final messageIds = messages
+        .map((message) => _recordId(message, const ['id', 'messageId']))
+        .whereType<int>()
+        .toList(growable: false);
+    if (mounted) {
+      setState(() {
+        _lastApiMessages = messages;
+        _apiMessageIdsController.text = messageIds.join(', ');
+      });
+    }
+    final first = messages.isEmpty ? null : messages.first;
+    final fields = first == null ? 'нет' : first.keys.join(', ');
+    return 'CHAT_HISTORY вернул сообщений: ${messages.length}; распознано Message ID: ${messageIds.length}. ID автоматически заполнены для MSG_GET. Поля записи: $fields. Текст сообщений не выводится в журнал.';
   }
 
+
+  int? _recordId(Map<String, Object?> record, List<String> keys) {
+    for (final key in keys) {
+      final value = record[key];
+      if (value is int && value > 0) return value;
+      if (value is num && value.isFinite && value > 0 &&
+          value == value.roundToDouble()) {
+        return value.toInt();
+      }
+      if (value is String) {
+        final parsed = int.tryParse(value.trim());
+        if (parsed != null && parsed > 0) return parsed;
+      }
+    }
+    return null;
+  }
 
   Future<String> _probeMessagesById() async {
     final chatId = int.tryParse(_apiChatIdController.text.trim());
@@ -1260,12 +1308,12 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
   Widget build(BuildContext context) {
     final qr = _qrRequest;
     final apiContactIds = _lastApiContacts
-        .map((contact) => contact['id'])
+        .map((contact) => _recordId(contact, const ['id', 'contactId']))
         .whereType<int>()
         .toSet()
         .toList(growable: false);
     final apiChatIds = _lastApiChats
-        .map((chat) => chat['id'])
+        .map((chat) => _recordId(chat, const ['id', 'chatId']))
         .whereType<int>()
         .toSet()
         .toList(growable: false);
@@ -1505,10 +1553,19 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                                               labelText: 'Чат из последнего списка',
                                               border: OutlineInputBorder(),
                                             ),
-                                            items: apiChatIds.map((id) => DropdownMenuItem<int>(
-                                              value: id,
-                                              child: Text('Chat $id'),
-                                            )).toList(),
+                                            items: apiChatIds.map((id) {
+                                              final chat = _lastApiChats.firstWhere(
+                                                (item) => _recordId(item, const ['id', 'chatId']) == id,
+                                              );
+                                              final title = chat['title'] ?? chat['name'] ?? chat['chatName'];
+                                              final label = title is String && title.trim().isNotEmpty
+                                                  ? title.trim()
+                                                  : 'Чат';
+                                              return DropdownMenuItem<int>(
+                                                value: id,
+                                                child: Text('$label (ID: $id)', overflow: TextOverflow.ellipsis),
+                                              );
+                                            }).toList(),
                                             onChanged: _apiBusy ? null : (id) {
                                               if (id != null) setState(() => _apiChatIdController.text = id.toString());
                                             },
@@ -1560,7 +1617,14 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                                         if (_lastApiChats.isNotEmpty) ...[
                                           const SizedBox(height: 8),
                                           Text(
-                                            'Последний список чатов: ${_lastApiChats.length}. ID и названия не выводятся автоматически.',
+                                            'Получено чатов: ${_lastApiChats.length}; доступно для выбора: ${apiChatIds.length}. Выбери чат из списка выше, его ID подставится автоматически.',
+                                            style: Theme.of(context).textTheme.bodySmall,
+                                          ),
+                                        ],
+                                        if (_lastApiMessages.isNotEmpty) ...[
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'Последняя история: ${_lastApiMessages.length} сообщений; найдено ID: ${_apiMessageIdsController.text.isEmpty ? 0 : _apiMessageIdsController.text.split(',').length}. ID подставлены в поле MSG_GET.',
                                             style: Theme.of(context).textTheme.bodySmall,
                                           ),
                                         ],
