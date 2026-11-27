@@ -1,3 +1,4 @@
+export 'src/api/max_read_only_api.dart';
 export 'src/auth/auth_manager.dart';
 export 'src/auth/auth_models.dart';
 export 'src/auth/auth_payloads.dart';
@@ -29,4 +30,3 @@ export 'src/session/sync_state.dart';
 export 'src/transport/protocol_transport.dart';
 export 'src/transport/tcp_socket_transport.dart';
 export 'src/transport/web_socket_transport.dart';
-export 'src/api/max_read_only_api.dart';
