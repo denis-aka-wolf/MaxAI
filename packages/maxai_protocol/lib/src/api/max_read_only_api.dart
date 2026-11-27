@@ -177,6 +177,7 @@ final class MaxReadOnlyApi {
       throw MaxReadOnlyApiException(
         'MAX returned an ERROR response for opcode $opcode.',
         opcode: opcode,
+        diagnostics: _safeErrorDiagnostics(response.payload),
       );
     }
     if (response.commandType != ProtocolCommand.response ||
@@ -186,6 +187,44 @@ final class MaxReadOnlyApi {
         opcode: opcode,
       );
     }
+  }
+
+  static Map<String, Object?> _safeErrorDiagnostics(Object? payload) {
+    if (payload is! Map) {
+      return <String, Object?>{'payloadType': payload.runtimeType.toString()};
+    }
+
+    const diagnosticKeys = <String>{
+      'error',
+      'code',
+      'status',
+      'message',
+      'description',
+      'errorCode',
+      'errorMessage',
+    };
+    final result = <String, Object?>{};
+    for (final entry in payload.entries) {
+      if (entry.key is! String) continue;
+      final key = entry.key as String;
+      if (!diagnosticKeys.contains(key)) continue;
+      final value = entry.value;
+      if (value == null || value is num || value is bool) {
+        result[key] = value;
+      } else if (value is String) {
+        result[key] = value.length > 240
+            ? '${value.substring(0, 240)}…'
+            : value;
+      }
+    }
+    if (result.isEmpty) {
+      result['payloadType'] = payload.runtimeType.toString();
+      result['keys'] = payload.keys
+          .whereType<String>()
+          .take(12)
+          .toList(growable: false);
+    }
+    return Map<String, Object?>.unmodifiable(result);
   }
 
   static void _requireIds(List<int> ids, String field) {
@@ -230,12 +269,19 @@ final class MaxChatMembersResult {
 }
 
 final class MaxReadOnlyApiException implements Exception {
-  const MaxReadOnlyApiException(this.message, {required this.opcode});
+  const MaxReadOnlyApiException(
+    this.message, {
+    required this.opcode,
+    this.diagnostics = const <String, Object?>{},
+  });
 
   final String message;
   final int opcode;
+  final Map<String, Object?> diagnostics;
 
   @override
-  String toString() =>
-      'MaxReadOnlyApiException(opcode: $opcode, message: $message)';
+  String toString() => diagnostics.isEmpty
+      ? 'MaxReadOnlyApiException(opcode: $opcode, message: $message)'
+      : 'MaxReadOnlyApiException(opcode: $opcode, message: $message, '
+          'diagnostics: $diagnostics)';
 }
