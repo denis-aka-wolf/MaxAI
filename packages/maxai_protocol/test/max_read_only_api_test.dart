@@ -238,6 +238,11 @@ void main() {
               (error) => error.toString(),
               'safe message',
               isNot(contains('must-not-leak')),
+            )
+            .having(
+              (error) => error.toString(),
+              'server error code',
+              contains('AUTH_REQUIRED'),
             ),
       ),
     );
