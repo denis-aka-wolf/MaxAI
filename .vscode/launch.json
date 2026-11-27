@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Auth Probe: Validate and Launch (Windows)",
+      "type": "dart",
+      "request": "launch",
+      "program": "${workspaceFolder}/apps/auth_probe/lib/main.dart",
+      "cwd": "${workspaceFolder}/apps/auth_probe",
+      "deviceId": "windows",
+      "preLaunchTask": "Auth Probe: Analyze + Test"
+    }
+  ]
+}
