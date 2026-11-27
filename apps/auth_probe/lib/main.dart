@@ -1274,7 +1274,8 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
           'joinedAt': entry.value,
         });
       }
-      _showApiResult('Участники личного диалога из CHATS_LIST', <String, Object?>{
+      _showApiResult(
+          'Участники личного диалога из CHATS_LIST', <String, Object?>{
         'chatId': id,
         'type': chatType,
         'source': 'CHATS_LIST.participants',
@@ -1809,20 +1810,34 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                                             setState(() {
                                               _apiChatIdController.text =
                                                   id.toString();
-                                              final chat = _lastApiChats.firstWhere(
+                                              final chat =
+                                                  _lastApiChats.firstWhere(
                                                 (item) =>
-                                                    _recordId(item, const ['id', 'chatId']) == id,
+                                                    _recordId(item, const [
+                                                      'id',
+                                                      'chatId'
+                                                    ]) ==
+                                                    id,
                                               );
-                                              final lastMessage = chat['lastMessage'];
-                                              final lastMessageId = lastMessage is Map
-                                                  ? _recordId(
-                                                      lastMessage.cast<String, Object?>(),
-                                                      const ['id', 'messageId'],
-                                                    )
-                                                  : null;
+                                              final lastMessage =
+                                                  chat['lastMessage'];
+                                              final lastMessageId =
+                                                  lastMessage is Map
+                                                      ? _recordId(
+                                                          lastMessage.cast<
+                                                              String,
+                                                              Object?>(),
+                                                          const [
+                                                            'id',
+                                                            'messageId'
+                                                          ],
+                                                        )
+                                                      : null;
                                               _apiMessageIdsController.text =
-                                                  lastMessageId?.toString() ?? '';
-                                              _lastApiMessages = <Map<String, Object?>>[];
+                                                  lastMessageId?.toString() ??
+                                                      '';
+                                              _lastApiMessages =
+                                                  <Map<String, Object?>>[];
                                             });
                                           }
                                         },
