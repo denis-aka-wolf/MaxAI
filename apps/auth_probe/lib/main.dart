@@ -1546,6 +1546,7 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                                         if (apiChatIds.isNotEmpty) ...[
                                           const SizedBox(height: 8),
                                           DropdownButtonFormField<int>(
+                                            key: ValueKey('chat-ids-${apiChatIds.join(',')}'),
                                             initialValue: apiChatIds.contains(int.tryParse(_apiChatIdController.text))
                                                 ? int.tryParse(_apiChatIdController.text)
                                                 : null,
