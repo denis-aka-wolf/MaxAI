@@ -9,7 +9,7 @@ in the current PyMax source. PyMax is a reverse-engineered reference, not an
 official MAX protocol specification. Every method still requires a live
 account test before it is considered verified against the server.
 
-## Implemented
+## Implemented operations
 
 | Operation | Opcode | Request payload | Response field |
 |---|---:|---|---|
@@ -48,6 +48,23 @@ confirmed. Contact details are currently fetched through opcode 32 using
 - No write operations are included in this API surface.
 - The UI exposes independent buttons and requires an authenticated session.
 
+## Unit test coverage
+
+The `max_read_only_api_test.dart` tests cover:
+
+- exact opcodes and request payloads for all six network read-only operations;
+- profile and contact snapshots from LOGIN without an additional request;
+- successful and empty collection parsing;
+- safe handling of ERROR frames;
+- rejection of RESPONSE frames with a mismatched opcode;
+- rejection of malformed response structures;
+- pending-request cleanup after a timeout;
+- completion of pending requests when the connection closes;
+- invalid IDs rejected before a request is sent.
+
+These tests use a fake transport. They verify client-side behavior but are not
+live tests against the MAX server.
+
 ## Local verification
 
 From `packages/maxai_protocol`:
@@ -69,4 +86,5 @@ semicolon- or whitespace-separated list of Message IDs. It is read-only.
 
 Live API checks should be performed one operation at a time in the
 `auth_probe` UI. A passing unit test verifies payload construction and
-response handling, not server-side availability or account permissions.
+response handling, not server-side availability or account permissions. Record
+each live-check status separately after observing the actual server result.
