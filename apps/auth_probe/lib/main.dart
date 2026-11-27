@@ -1797,16 +1797,20 @@ class _AuthProbeScreenState extends State<AuthProbeScreen> {
                                 const SizedBox(height: 6),
                                 Container(
                                   width: double.infinity,
-                                  constraints: const BoxConstraints(maxHeight: 360),
+                                  constraints:
+                                      const BoxConstraints(maxHeight: 360),
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .surfaceContainerHighest,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: SingleChildScrollView(
                                     child: SelectableText(
                                       _apiResultText!,
-                                      style: const TextStyle(fontFamily: 'Consolas', fontSize: 12),
+                                      style: const TextStyle(
+                                          fontFamily: 'Consolas', fontSize: 12),
                                     ),
                                   ),
                                 ),
